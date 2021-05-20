@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
 )
@@ -39,6 +40,7 @@ func NewCurrencyPage() *CurrencyTable {
 	c.Table.Header = []string{"Currency", "Symbol", "USD rate"}
 	c.Table.Rows = rows
 	c.Table.CursorColor = ui.ColorCyan
+	c.Table.ShowCursor = true
 	c.Table.ColWidths = []int{5, 5, 5}
 	c.Table.ColResizer = func() {
 		x := c.Table.Inner.Dx()
@@ -138,4 +140,5 @@ func (c *CurrencyTable) UpdateRows() {
 	wg.Wait()
 
 	c.Table.Rows = rows
+	utils.SortData(c.Table.Rows, 0, true, "CURRENCY")
 }

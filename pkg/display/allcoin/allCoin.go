@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
+	"github.com/Gituser143/cryptgo/pkg/display/coin"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	ui "github.com/gizak/termui/v3"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -18,7 +20,7 @@ const (
 	DOWN_ARROW = "▼"
 )
 
-func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error {
+func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendData *bool) error {
 
 	if err := ui.Init(); err != nil {
 		return fmt.Errorf("failed to initialise termui: %v", err)
@@ -27,8 +29,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 
 	var onTop sync.Once
 	var onAll sync.Once
-
-	run := true
 
 	currency := "USD $"
 	currencyVal := 1.0
@@ -47,11 +47,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 
 	previousKey := ""
 
+	coinIDs := make(map[string]string)
+
 	myPage := NewAllCoinPage()
 	selectedTable := myPage.CoinTable
 
 	pause := func() {
-		run = !run
+		*sendData = !(*sendData)
 	}
 
 	updateUI := func() {
@@ -99,13 +101,32 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 
 			case "c":
 				selectCurrency = true
-				selectedTable = currencyWidget.Table
 				selectedTable.ShowCursor = true
 				currencyWidget.UpdateRows()
 				updateUI()
 			}
 			if selectCurrency {
 				switch e.ID {
+				case "j", "<Down>":
+					currencyWidget.ScrollDown()
+				case "k", "<Up>":
+					currencyWidget.ScrollUp()
+				case "<C-d>":
+					currencyWidget.ScrollHalfPageDown()
+				case "<C-u>":
+					currencyWidget.ScrollHalfPageUp()
+				case "<C-f>":
+					currencyWidget.ScrollPageDown()
+				case "<C-b>":
+					currencyWidget.ScrollPageUp()
+				case "g":
+					if previousKey == "g" {
+						currencyWidget.ScrollTop()
+					}
+				case "<Home>":
+					currencyWidget.ScrollTop()
+				case "G", "<End>":
+					currencyWidget.ScrollBottom()
 				case "<Enter>":
 					var err error
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
@@ -121,15 +142,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 
 					selectedTable = myPage.CoinTable
 					selectCurrency = false
-					updateUI()
 
 				case "<Escape>":
 					selectedTable = myPage.CoinTable
 					selectCurrency = false
-					updateUI()
 				}
-			}
-			if selectedTable != nil {
+				ui.Render(currencyWidget)
+			} else if selectedTable != nil {
 				selectedTable.ShowCursor = true
 
 				switch e.ID {
@@ -154,7 +173,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 				case "G", "<End>":
 					selectedTable.ScrollBottom()
 
-					// Sort Ascending
+				// Sort Ascending
 				case "1", "2", "3", "4":
 					idx, _ := strconv.Atoi(e.ID)
 					sortIdx = idx - 1
@@ -171,9 +190,52 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 					myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + DOWN_ARROW
 					sortAsc = false
 					utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+
+				case "<Enter>":
+					// pause UI and data send
+					pause()
+
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					} else {
+						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					}
+					id = coinIDs[symbol]
+
+					if id != "" {
+						eg, ctx := errgroup.WithContext(ctx)
+						coinChannel := make(chan api.CoinHistory)
+
+						eg.Go(func() error {
+							err := api.GetCoinData(ctx, id, coinChannel)
+							return err
+						})
+
+						eg.Go(func() error {
+							err := coin.DisplayCoin(ctx, coinChannel)
+							return err
+						})
+
+						if err := eg.Wait(); err != nil {
+							if err.Error() != "UI Closed" {
+								return err
+							}
+						}
+						pause()
+					}
 				}
 
-				updateUI()
+				ui.Render(myPage.Grid)
 				if previousKey == "g" {
 					previousKey = ""
 				} else {
@@ -186,9 +248,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 				for i, v := range data.TopCoinData {
 					myPage.TopCoinGraphs[i].Title = " " + data.TopCoins[i] + " "
 					myPage.TopCoinGraphs[i].Data["Value"] = v
-					myPage.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f", v[len(v)-1])
-					myPage.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f", utils.MaxFloat64(v...))
-					myPage.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f", utils.MinFloat64(v...))
+					myPage.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f %s", v[len(v)-1]/currencyVal, currency)
+					myPage.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", utils.MaxFloat64(v...)/currencyVal, currency)
+					myPage.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", utils.MinFloat64(v...)/currencyVal, currency)
 				}
 				onTop.Do(updateUI)
 			} else {
@@ -238,6 +300,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 						change,
 						supplyData,
 					})
+
+					if _, ok := coinIDs[val.Symbol]; !ok {
+						coinIDs[val.Symbol] = val.Id
+					}
 				}
 				myPage.CoinTable.Rows = rows
 
@@ -254,7 +320,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 			}
 
 		case <-tick:
-			updateUI()
+			if *sendData {
+				updateUI()
+			}
 		}
 
 	}

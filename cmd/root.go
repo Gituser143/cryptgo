@@ -49,17 +49,18 @@ to quickly create a Cobra application.`,
 
 		eg, ctx := errgroup.WithContext(context.Background())
 		dataChannel := make(chan api.AssetData)
+		sendData := true
 
 		eg.Go(func() error {
-			return api.GetAssets(ctx, dataChannel)
+			return api.GetAssets(ctx, dataChannel, &sendData)
 		})
 
 		eg.Go(func() error {
-			return api.GetTopCoinData(ctx, dataChannel)
+			return api.GetTopCoinData(ctx, dataChannel, &sendData)
 		})
 
 		eg.Go(func() error {
-			return allcoin.DisplayAllCoins(ctx, dataChannel)
+			return allcoin.DisplayAllCoins(ctx, dataChannel, &sendData)
 		})
 
 		if err := eg.Wait(); err != nil {

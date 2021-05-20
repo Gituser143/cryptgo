@@ -44,7 +44,7 @@ type CoinHistory struct {
 	Timestamp uint        `json:"timestamp"`
 }
 
-func GetAssets(ctx context.Context, dataChannel chan AssetData) error {
+func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 	url := "https://api.coincap.io/v2/assets"
 	method := "GET"
 
@@ -57,32 +57,34 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData) error {
 	client := &http.Client{}
 
 	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
-		// Send Request
-		res, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-
 		data := AssetData{}
 
-		// Read response
-		err = json.NewDecoder(res.Body).Decode(&data)
-		if err != nil {
-			return err
-		}
+		if *sendData {
+			// Send Request
+			res, err := client.Do(req)
+			if err != nil {
+				return err
+			}
+			defer res.Body.Close()
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case dataChannel <- data:
+			// Read response
+			err = json.NewDecoder(res.Body).Decode(&data)
+			if err != nil {
+				return err
+			}
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case dataChannel <- data:
+			}
 		}
 
 		return nil
 	})
 }
 
-func GetTopCoinData(ctx context.Context, dataChannel chan AssetData) error {
+func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 	url := "https://api.coincap.io/v2/assets?limit=3"
 	method := "GET"
 
@@ -95,70 +97,73 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData) error {
 	client := &http.Client{}
 
 	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func() error {
-		// Send Request
-		res, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-
 		data := AssetData{}
 
-		// Read response
-		err = json.NewDecoder(res.Body).Decode(&data)
-		if err != nil {
-			return err
-		}
+		if *sendData {
 
-		topCoinData := make([][]float64, 3)
-		topCoins := make([]string, 3)
-
-		for i, val := range data.Data {
-			historyUrl := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=d1", val.Id)
-			method := "GET"
-
-			// Create Request
-			req, err := http.NewRequest(method, historyUrl, nil)
-			if err != nil {
-				return err
-			}
-
+			// Send Request
 			res, err := client.Do(req)
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
 
-			historyData := CoinHistory{}
-
 			// Read response
-			err = json.NewDecoder(res.Body).Decode(&historyData)
+			err = json.NewDecoder(res.Body).Decode(&data)
 			if err != nil {
 				return err
 			}
 
-			price := []float64{}
-			for _, v := range historyData.Data {
-				p, err := strconv.ParseFloat(v.Price, 64)
+			topCoinData := make([][]float64, 3)
+			topCoins := make([]string, 3)
+
+			for i, val := range data.Data {
+				historyUrl := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=d1", val.Id)
+				method := "GET"
+
+				// Create Request
+				req, err := http.NewRequest(method, historyUrl, nil)
 				if err != nil {
 					return err
 				}
 
-				price = append(price, p)
+				res, err := client.Do(req)
+				if err != nil {
+					return err
+				}
+				defer res.Body.Close()
+
+				historyData := CoinHistory{}
+
+				// Read response
+				err = json.NewDecoder(res.Body).Decode(&historyData)
+				if err != nil {
+					return err
+				}
+
+				price := []float64{}
+				for _, v := range historyData.Data {
+					p, err := strconv.ParseFloat(v.Price, 64)
+					if err != nil {
+						return err
+					}
+
+					price = append(price, p)
+				}
+
+				topCoinData[i] = price
+				topCoins[i] = val.Name
 			}
 
-			topCoinData[i] = price
-			topCoins[i] = val.Name
-		}
+			data.TopCoinData = topCoinData
+			data.TopCoins = topCoins
+			data.IsTopCoinData = true
 
-		data.TopCoinData = topCoinData
-		data.TopCoins = topCoins
-		data.IsTopCoinData = true
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case dataChannel <- data:
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case dataChannel <- data:
+			}
 		}
 
 		return nil
