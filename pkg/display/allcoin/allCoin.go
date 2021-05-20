@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
+	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	ui "github.com/gizak/termui/v3"
 )
@@ -29,8 +30,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 
 	run := true
 
-	currency := "USD"
+	currency := "USD $"
 	currencyVal := 1.0
+	selectCurrency := false
+	currencyWidget := c.NewCurrencyPage()
 
 	sortIdx := -1
 	sortAsc := false
@@ -55,7 +58,15 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 		// Get Terminal Dimensions adn clear the UI
 		w, h := ui.TerminalDimensions()
 		myPage.Grid.SetRect(0, 0, w, h)
-		ui.Render(myPage.Grid)
+
+		currencyWidget.Resize(w, h)
+		if selectCurrency {
+			ui.Clear()
+			ui.Render(currencyWidget)
+		} else {
+			ui.Clear()
+			ui.Render(myPage.Grid)
+		}
 	}
 
 	uiEvents := ui.PollEvents()
@@ -85,8 +96,39 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 			case "F":
 				selectedTable.ShowCursor = false
 				selectedTable = myPage.CoinTable
-			}
 
+			case "c":
+				selectCurrency = true
+				selectedTable = currencyWidget.Table
+				selectedTable.ShowCursor = true
+				currencyWidget.UpdateRows()
+				updateUI()
+			}
+			if selectCurrency {
+				switch e.ID {
+				case "<Enter>":
+					var err error
+					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
+						row := currencyWidget.Rows[currencyWidget.SelectedRow]
+						currency = fmt.Sprintf("%s %s", row[0], row[1])
+						currencyVal, err = strconv.ParseFloat(row[2], 64)
+						if err != nil {
+							currencyVal = 0
+							currency = "USD $"
+						}
+						header[2] = fmt.Sprintf("Price (%s)", currency)
+					}
+
+					selectedTable = myPage.CoinTable
+					selectCurrency = false
+					updateUI()
+
+				case "<Escape>":
+					selectedTable = myPage.CoinTable
+					selectCurrency = false
+					updateUI()
+				}
+			}
 			if selectedTable != nil {
 				selectedTable.ShowCursor = true
 
@@ -131,7 +173,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 					utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
 				}
 
-				ui.Render(myPage.Grid)
+				updateUI()
 				if previousKey == "g" {
 					previousKey = ""
 				} else {
@@ -155,7 +197,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 					price := "NA"
 					p, err := strconv.ParseFloat(val.PriceUsd, 64)
 					if err == nil {
-						price = fmt.Sprintf("%.2f", p*currencyVal)
+						price = fmt.Sprintf("%.2f", p/currencyVal)
 						myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
 					}
 

@@ -72,7 +72,7 @@ func (page *AllCoinPage) InitAllCoin() {
 		page.TopCoinGraphs[i].HorizontalScale = 1
 		page.TopCoinGraphs[i].LineColors["Max"] = ui.ColorGreen
 		page.TopCoinGraphs[i].LineColors["Min"] = ui.ColorRed
-		page.TopCoinGraphs[i].LineColors["Value"] = ui.ColorWhite
+		page.TopCoinGraphs[i].LineColors["Value"] = ui.ColorBlue
 		page.TopCoinGraphs[i].BorderStyle.Fg = ui.ColorCyan
 		page.TopCoinGraphs[i].Data["Max"] = []float64{}
 		page.TopCoinGraphs[i].Data["Min"] = []float64{}
