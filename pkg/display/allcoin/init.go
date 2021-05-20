@@ -42,9 +42,9 @@ func (page *AllCoinPage) InitAllCoin() {
 	page.CoinTable.ColResizer = func() {
 		x := page.CoinTable.Inner.Dx()
 		page.CoinTable.ColWidths = []int{
-			ui.MaxInt(10, x/5),
-			ui.MaxInt(10, x/5),
-			ui.MaxInt(5, x/5),
+			ui.MaxInt(8, x/5),
+			ui.MaxInt(8, x/5),
+			ui.MaxInt(15, x/5),
 			ui.MaxInt(5, x/5),
 			ui.MaxInt(20, x/5),
 		}

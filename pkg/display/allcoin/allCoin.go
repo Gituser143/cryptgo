@@ -26,9 +26,26 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 
 	var onTop sync.Once
 	var onAll sync.Once
+
 	run := true
 
+	currency := "USD"
+	currencyVal := 1.0
+
+	sortIdx := -1
+	sortAsc := false
+	header := []string{
+		"Rank",
+		"Symbol",
+		fmt.Sprintf("Price (%s)", currency),
+		"Change %",
+		"Supply / MaxSupply",
+	}
+
+	previousKey := ""
+
 	myPage := NewAllCoinPage()
+	selectedTable := myPage.CoinTable
 
 	pause := func() {
 		run = !run
@@ -60,6 +77,66 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 
 			case "s":
 				pause()
+
+			case "f":
+				selectedTable.ShowCursor = false
+				selectedTable = myPage.FavouritesTable
+
+			case "F":
+				selectedTable.ShowCursor = false
+				selectedTable = myPage.CoinTable
+			}
+
+			if selectedTable != nil {
+				selectedTable.ShowCursor = true
+
+				switch e.ID {
+				case "j", "<Down>":
+					selectedTable.ScrollDown()
+				case "k", "<Up>":
+					selectedTable.ScrollUp()
+				case "<C-d>":
+					selectedTable.ScrollHalfPageDown()
+				case "<C-u>":
+					selectedTable.ScrollHalfPageUp()
+				case "<C-f>":
+					selectedTable.ScrollPageDown()
+				case "<C-b>":
+					selectedTable.ScrollPageUp()
+				case "g":
+					if previousKey == "g" {
+						selectedTable.ScrollTop()
+					}
+				case "<Home>":
+					selectedTable.ScrollTop()
+				case "G", "<End>":
+					selectedTable.ScrollBottom()
+
+					// Sort Ascending
+				case "1", "2", "3", "4":
+					idx, _ := strconv.Atoi(e.ID)
+					sortIdx = idx - 1
+					myPage.CoinTable.Header = append([]string{}, header...)
+					myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + UP_ARROW
+					sortAsc = true
+					utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+
+				// Sort Descending
+				case "<F1>", "<F2>", "<F3>", "<F4>":
+					myPage.CoinTable.Header = append([]string{}, header...)
+					idx, _ := strconv.Atoi(e.ID[2:3])
+					sortIdx = idx - 1
+					myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + DOWN_ARROW
+					sortAsc = false
+					utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+				}
+
+				ui.Render(myPage.Grid)
+				if previousKey == "g" {
+					previousKey = ""
+				} else {
+					previousKey = e.ID
+				}
 			}
 
 		case data := <-dataChannel:
@@ -78,7 +155,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 					price := "NA"
 					p, err := strconv.ParseFloat(val.PriceUsd, 64)
 					if err == nil {
-						price = fmt.Sprintf("%.2f", p)
+						price = fmt.Sprintf("%.2f", p*currencyVal)
+						myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
 					}
 
 					change := "NA"
@@ -120,6 +198,16 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData) error 
 					})
 				}
 				myPage.CoinTable.Rows = rows
+
+				if sortIdx != -1 {
+					utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+					if sortAsc {
+						myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + UP_ARROW
+					} else {
+						myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + DOWN_ARROW
+					}
+				}
+
 				onAll.Do(updateUI)
 			}
 
