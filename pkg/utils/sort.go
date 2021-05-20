@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -49,18 +48,12 @@ func SortData(data [][]string, sortIdx int, sortAsc bool, sortCase string) {
 	changeSort := func(i, j int) bool {
 		x1 := strings.Split(data[i][sortIdx], " ")
 		y1 := strings.Split(data[j][sortIdx], " ")
-		x, err := strconv.ParseFloat(x1[1], 64)
-		if err != nil {
-			log.Fatal(err)
-		}
+		x, _ := strconv.ParseFloat(x1[1], 64)
 		if string(x1[0]) == DOWN_ARROW {
 			x = -x
 		}
 
-		y, err := strconv.ParseFloat(y1[1], 64)
-		if err != nil {
-			log.Fatal(err)
-		}
+		y, _ := strconv.ParseFloat(y1[1], 64)
 		if string(y1[0]) == DOWN_ARROW {
 			y = -y
 		}
