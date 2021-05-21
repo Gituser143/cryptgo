@@ -119,7 +119,6 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 
 			for i, val := range data.Data {
 				historyUrl := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=d1", val.Id)
-				method := "GET"
 
 				// Create Request
 				req, err := http.NewRequest(method, historyUrl, nil)

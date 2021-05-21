@@ -213,16 +213,27 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					id = coinIDs[symbol]
 
 					if id != "" {
-						eg, ctx := errgroup.WithContext(ctx)
-						coinChannel := make(chan api.CoinHistory)
+						eg, coinCtx := errgroup.WithContext(ctx)
+						coinDataChannel := make(chan api.CoinData)
+						coinPriceChannel := make(chan string)
+						interval := "d1"
 
+						ui.Clear()
 						eg.Go(func() error {
-							err := api.GetCoinData(ctx, id, coinChannel)
+							err := api.GetCoinHistory(coinCtx, id, &interval, coinDataChannel)
 							return err
 						})
 
 						eg.Go(func() error {
-							err := coin.DisplayCoin(ctx, coinChannel)
+							err := api.GetCoinAsset(coinCtx, id, coinDataChannel)
+							return err
+						})
+
+						// Not run with eg because it blocks on ctx.Done()
+						go api.GetLivePrice(coinCtx, id, coinPriceChannel)
+
+						eg.Go(func() error {
+							err := coin.DisplayCoin(coinCtx, id, &interval, coinDataChannel, coinPriceChannel)
 							return err
 						})
 
@@ -232,6 +243,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							}
 						}
 						pause()
+						updateUI()
 					}
 				}
 

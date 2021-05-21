@@ -6,6 +6,7 @@ require (
 	github.com/cjbassi/gotop v0.0.0-20200829004927-65d76af83079
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gizak/termui/v3 v3.1.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mattn/go-runewidth v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0

@@ -64,7 +64,7 @@ to quickly create a Cobra application.`,
 		})
 
 		if err := eg.Wait(); err != nil {
-			if err.Error() != "UI Closed" {
+			if err.Error() != "UI Closed" && err.Error() != "coin UI Closed" {
 				log.Fatal(err)
 			}
 		}
