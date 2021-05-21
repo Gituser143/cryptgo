@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
@@ -17,11 +18,76 @@ type CoinData struct {
 	PriceHistory  []float64
 	CoinAssetData CoinAsset
 	Price         string
+	Favourites    [][]string
 }
 
 type CoinAsset struct {
 	Data      Asset `json:"data"`
 	TimeStamp uint  `json:"timestamp"`
+}
+
+func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataChannel chan CoinData) error {
+	method := "GET"
+
+	client := &http.Client{}
+
+	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
+
+		var wg sync.WaitGroup
+		var m sync.Mutex
+
+		favouriteData := [][]string{}
+
+		for id := range favourites {
+			wg.Add(1)
+			go func(id string, wg *sync.WaitGroup, m *sync.Mutex) {
+				data := CoinAsset{}
+				url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s", id)
+
+				// Create Request
+				req, err := http.NewRequest(method, url, nil)
+				if err != nil {
+					return
+				}
+
+				// Send Request
+				res, err := client.Do(req)
+				if err != nil {
+					return
+				}
+				defer res.Body.Close()
+
+				// Read response
+				err = json.NewDecoder(res.Body).Decode(&data)
+				if err != nil {
+					return
+				}
+
+				m.Lock()
+				favouriteData = append(favouriteData, []string{
+					data.Data.Symbol,
+					data.Data.PriceUsd,
+				})
+				m.Unlock()
+				wg.Done()
+			}(id, &wg, &m)
+		}
+
+		wg.Wait()
+
+		coinData := CoinData{
+			Type:       "FAVOURITES",
+			Favourites: favouriteData,
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case dataChannel <- coinData:
+		}
+
+		return nil
+	})
 }
 
 func GetCoinHistory(ctx context.Context, id string, interval *string, dataChannel chan CoinData) error {

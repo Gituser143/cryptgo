@@ -144,6 +144,9 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 		case data := <-dataChannel:
 			switch data.Type {
 
+			case "FAVOURITES":
+				myPage.FavouritesTable.Rows = data.Favourites
+
 			case "HISTORY":
 				// Update History graph
 				price := data.PriceHistory
