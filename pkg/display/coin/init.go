@@ -64,8 +64,8 @@ func (page *CoinPage) InitCoin() {
 	page.PriceBox.ColResizer = func() {
 		x := page.PriceBox.Inner.Dx()
 		page.PriceBox.ColWidths = []int{
-			x / 2,
-			x / 2,
+			6 * x / 10,
+			4 * x / 10,
 		}
 	}
 	page.PriceBox.Rows = [][]string{{"", ""}}

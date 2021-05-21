@@ -96,7 +96,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 
 	client := &http.Client{}
 
-	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func() error {
+	return utils.LoopTick(ctx, time.Duration(5)*time.Second, func() error {
 		data := AssetData{}
 
 		if *sendData {

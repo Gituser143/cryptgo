@@ -17,6 +17,10 @@ const (
 // sort the selected column by.
 func SortData(data [][]string, sortIdx int, sortAsc bool, sortCase string) {
 
+	if sortIdx < 0 {
+		return
+	}
+
 	// Define less functions
 	intSort := func(i, j int) bool {
 		x, _ := strconv.Atoi(data[i][sortIdx])

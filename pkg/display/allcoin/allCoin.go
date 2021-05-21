@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
@@ -26,9 +25,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		return fmt.Errorf("failed to initialise termui: %v", err)
 	}
 	defer ui.Close()
-
-	var onTop sync.Once
-	var onAll sync.Once
 
 	currency := "USD $"
 	currencyVal := 1.0
@@ -61,15 +57,16 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		w, h := ui.TerminalDimensions()
 		myPage.Grid.SetRect(0, 0, w, h)
 
-		currencyWidget.Resize(w, h)
+		ui.Clear()
 		if selectCurrency {
-			ui.Clear()
+			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
 		} else {
-			ui.Clear()
 			ui.Render(myPage.Grid)
 		}
 	}
+
+	updateUI()
 
 	uiEvents := ui.PollEvents()
 	t := time.NewTicker(time.Duration(1) * time.Second)
@@ -100,9 +97,17 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				selectedTable = myPage.CoinTable
 
 			case "c":
+				selectedTable.ShowCursor = false
 				selectCurrency = true
 				selectedTable.ShowCursor = true
 				currencyWidget.UpdateRows()
+				updateUI()
+
+			case "C":
+				selectedTable.ShowCursor = false
+				selectCurrency = true
+				selectedTable.ShowCursor = true
+				currencyWidget.UpdateAll()
 				updateUI()
 			}
 			if selectCurrency {
@@ -132,7 +137,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
 						row := currencyWidget.Rows[currencyWidget.SelectedRow]
 						currency = fmt.Sprintf("%s %s", row[0], row[1])
-						currencyVal, err = strconv.ParseFloat(row[2], 64)
+						currencyVal, err = strconv.ParseFloat(row[3], 64)
 						if err != nil {
 							currencyVal = 0
 							currency = "USD $"
@@ -147,7 +152,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectedTable = myPage.CoinTable
 					selectCurrency = false
 				}
-				ui.Render(currencyWidget)
+				if selectCurrency {
+					ui.Render(currencyWidget)
+				}
 			} else if selectedTable != nil {
 				selectedTable.ShowCursor = true
 
@@ -206,7 +213,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						}
 					} else {
 						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
-							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
 							symbol = row[1]
 						}
 					}
@@ -233,7 +240,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						go api.GetLivePrice(coinCtx, id, coinPriceChannel)
 
 						eg.Go(func() error {
-							err := coin.DisplayCoin(coinCtx, id, &interval, coinDataChannel, coinPriceChannel)
+							err := coin.DisplayCoin(coinCtx, id, &interval, coinDataChannel, coinPriceChannel, uiEvents)
 							return err
 						})
 
@@ -264,7 +271,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					myPage.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", utils.MaxFloat64(v...)/currencyVal, currency)
 					myPage.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", utils.MinFloat64(v...)/currencyVal, currency)
 				}
-				onTop.Do(updateUI)
 			} else {
 				rows := [][]string{}
 				for _, val := range data.Data {
@@ -328,7 +334,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					}
 				}
 
-				onAll.Do(updateUI)
 			}
 
 		case <-tick:

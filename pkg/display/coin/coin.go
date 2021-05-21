@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
+	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	ui "github.com/gizak/termui/v3"
 )
@@ -16,10 +17,18 @@ const (
 	DOWN_ARROW = "▼"
 )
 
-func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel chan api.CoinData, priceChannel chan string) error {
+func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel chan api.CoinData, priceChannel chan string, uiEvents <-chan ui.Event) error {
 	defer ui.Clear()
 
 	myPage := NewCoinPage()
+
+	currency := "USD $"
+	currencyVal := 1.0
+	selectCurrency := false
+	currencyWidget := c.NewCurrencyPage()
+
+	selectedTable := myPage.FavouritesTable
+	previousKey := ""
 
 	updateUI := func() {
 		// Get Terminal Dimensions adn clear the UI
@@ -30,12 +39,17 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 
 		myPage.Grid.SetRect(0, 0, w, h)
 
-		ui.Render(myPage.Grid)
+		ui.Clear()
+		if selectCurrency {
+			currencyWidget.Resize(w, h)
+			ui.Render(currencyWidget)
+		} else {
+			ui.Render(myPage.Grid)
+		}
 	}
 
 	updateUI()
 
-	uiEvents := ui.PollEvents()
 	t := time.NewTicker(time.Duration(1) * time.Second)
 	tick := t.C
 
@@ -47,16 +61,85 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 		case e := <-uiEvents:
 			switch e.ID {
 			case "<Escape>":
-				return fmt.Errorf("UI Closed")
+				if !selectCurrency {
+					selectedTable = nil
+					selectCurrency = false
+					return fmt.Errorf("UI Closed")
+				}
 			case "q", "<C-c>":
 				return fmt.Errorf("coin UI Closed")
 			case "<Resize>":
 				updateUI()
+			case "c":
+				selectedTable.ShowCursor = false
+				selectCurrency = true
+				selectedTable = currencyWidget.Table
+				selectedTable.ShowCursor = true
+				currencyWidget.UpdateRows()
+				updateUI()
+
+			case "C":
+				selectedTable.ShowCursor = false
+				selectCurrency = true
+				selectedTable = currencyWidget.Table
+				selectedTable.ShowCursor = true
+				currencyWidget.UpdateAll()
+				updateUI()
+			}
+			if selectCurrency {
+				switch e.ID {
+				case "j", "<Down>":
+					currencyWidget.ScrollDown()
+				case "k", "<Up>":
+					currencyWidget.ScrollUp()
+				case "<C-d>":
+					currencyWidget.ScrollHalfPageDown()
+				case "<C-u>":
+					currencyWidget.ScrollHalfPageUp()
+				case "<C-f>":
+					currencyWidget.ScrollPageDown()
+				case "<C-b>":
+					currencyWidget.ScrollPageUp()
+				case "g":
+					if previousKey == "g" {
+						currencyWidget.ScrollTop()
+					}
+				case "<Home>":
+					currencyWidget.ScrollTop()
+				case "G", "<End>":
+					currencyWidget.ScrollBottom()
+				case "<Enter>":
+					var err error
+					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
+						row := currencyWidget.Rows[currencyWidget.SelectedRow]
+						currency = fmt.Sprintf("%s %s", row[0], row[1])
+						currencyVal, err = strconv.ParseFloat(row[3], 64)
+						if err != nil {
+							currencyVal = 0
+							currency = "USD $"
+						}
+					}
+
+					selectedTable.ShowCursor = false
+					selectedTable = myPage.FavouritesTable
+					selectCurrency = false
+
+				case "<Escape>":
+					selectedTable.ShowCursor = false
+					selectedTable = myPage.FavouritesTable
+					selectCurrency = false
+				}
+				if selectCurrency {
+					ui.Render(currencyWidget)
+				}
 			}
 
 		case data := <-priceChannel:
-			myPage.PriceBox.Rows[0][0] = data + "$"
-			ui.Render(myPage.PriceBox)
+			p, _ := strconv.ParseFloat(data, 64)
+			myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
+			if !selectCurrency {
+				ui.Render(myPage.PriceBox)
+			}
 
 		case data := <-dataChannel:
 			switch data.Type {
@@ -65,8 +148,8 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 				// Update History graph
 				price := data.PriceHistory
 				myPage.ValueGraph.Data["Value"] = price
-				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", utils.MaxFloat64(price...), "$")
-				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", utils.MinFloat64(price...), "$")
+				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", utils.MaxFloat64(price...)/currencyVal, currency)
+				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", utils.MinFloat64(price...)/currencyVal, currency)
 
 			case "ASSET":
 				// Update Details table
@@ -79,11 +162,9 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 					{"Explorer", data.CoinAssetData.Data.Explorer},
 				}
 
-				price := "NA"
 				p, err := strconv.ParseFloat(data.CoinAssetData.Data.PriceUsd, 64)
 				if err == nil {
-					price = fmt.Sprintf("%.2f", p/1)
-					myPage.ValueGraph.Labels["Value"] = fmt.Sprintf("%s %s", price, "$")
+					myPage.ValueGraph.Labels["Value"] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
 				}
 
 				myPage.DetailsTable.Rows = rows

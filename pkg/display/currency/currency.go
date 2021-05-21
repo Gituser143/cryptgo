@@ -27,6 +27,11 @@ type CurrencyData struct {
 	Timestamp uint     `json:"timestamp"`
 }
 
+type AllCurrencyData struct {
+	Data      []Currency `json:"data"`
+	Timestamp uint       `json:"timestamp"`
+}
+
 type CurrencyTable struct {
 	*widgets.Table
 }
@@ -37,17 +42,18 @@ func NewCurrencyPage() *CurrencyTable {
 	}
 
 	c.Table.Title = " Select Currency "
-	c.Table.Header = []string{"Currency", "Symbol", "USD rate"}
+	c.Table.Header = []string{"Currency", "Symbol", "Type", "USD rate"}
 	c.Table.Rows = rows
 	c.Table.CursorColor = ui.ColorCyan
 	c.Table.ShowCursor = true
-	c.Table.ColWidths = []int{5, 5, 5}
+	c.Table.ColWidths = []int{5, 5, 5, 5}
 	c.Table.ColResizer = func() {
 		x := c.Table.Inner.Dx()
 		c.Table.ColWidths = []int{
-			x / 3,
-			x / 3,
-			x / 3,
+			x / 4,
+			x / 4,
+			x / 4,
+			x / 4,
 		}
 	}
 	return c
@@ -74,6 +80,53 @@ func (c *CurrencyTable) Resize(termWidth, termHeight int) {
 // Draw puts the required text into the widget
 func (c *CurrencyTable) Draw(buf *ui.Buffer) {
 	c.Table.Draw(buf)
+}
+
+func (c *CurrencyTable) UpdateAll() {
+	url := "https://api.coincap.io/v2/rates"
+	method := "GET"
+
+	rows := [][]string{}
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		res.Body.Close()
+		return
+	}
+
+	data := AllCurrencyData{}
+
+	err = json.NewDecoder(res.Body).Decode(&data)
+	res.Body.Close()
+	if err != nil {
+		return
+	}
+
+	for _, currency := range data.Data {
+		rate, err := strconv.ParseFloat(currency.RateUSD, 64)
+		if err != nil {
+			continue
+		}
+
+		row := []string{
+			currency.Symbol,
+			currency.CurrencySymbol,
+			currency.Type,
+			fmt.Sprintf("%.4f", rate),
+		}
+
+		rows = append(rows, row)
+	}
+
+	c.Table.Rows = rows
+	utils.SortData(c.Table.Rows, 0, true, "CURRENCY")
 }
 
 func (c *CurrencyTable) UpdateRows() {
@@ -128,6 +181,7 @@ func (c *CurrencyTable) UpdateRows() {
 			row := []string{
 				data.Data.Symbol,
 				data.Data.CurrencySymbol,
+				data.Data.Type,
 				fmt.Sprintf("%.4f", rate),
 			}
 
