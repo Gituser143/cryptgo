@@ -126,8 +126,15 @@ Currency need not be fixed to USD $, other currencies can be selected from eithe
 
 ---
 
+Contributing
+============
+
+**Pull Requests and Issues are welcome!**
+
+---
+
 Credits
--------
+=======
 
 Multiple Design ideas, utilities, functions and practices have been adopted from:
 
