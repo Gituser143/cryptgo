@@ -27,8 +27,14 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
 
-	selectedTable := myPage.FavouritesTable
 	previousKey := ""
+
+	favSortIdx := -1
+	favSortAsc := false
+	favHeader := []string{
+		"Symbol",
+		fmt.Sprintf("Price (%s)", currency),
+	}
 
 	updateUI := func() {
 		// Get Terminal Dimensions adn clear the UI
@@ -62,7 +68,6 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 			switch e.ID {
 			case "<Escape>":
 				if !selectCurrency {
-					selectedTable = nil
 					selectCurrency = false
 					return fmt.Errorf("UI Closed")
 				}
@@ -71,18 +76,12 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 			case "<Resize>":
 				updateUI()
 			case "c":
-				selectedTable.ShowCursor = false
 				selectCurrency = true
-				selectedTable = currencyWidget.Table
-				selectedTable.ShowCursor = true
 				currencyWidget.UpdateRows()
 				updateUI()
 
 			case "C":
-				selectedTable.ShowCursor = false
 				selectCurrency = true
-				selectedTable = currencyWidget.Table
-				selectedTable.ShowCursor = true
 				currencyWidget.UpdateAll()
 				updateUI()
 			}
@@ -119,18 +118,61 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 							currency = "USD $"
 						}
 					}
-
-					selectedTable.ShowCursor = false
-					selectedTable = myPage.FavouritesTable
 					selectCurrency = false
-
 				case "<Escape>":
-					selectedTable.ShowCursor = false
-					selectedTable = myPage.FavouritesTable
 					selectCurrency = false
 				}
 				if selectCurrency {
 					ui.Render(currencyWidget)
+				}
+			} else {
+				myPage.FavouritesTable.ShowCursor = true
+				switch e.ID {
+				case "j", "<Down>":
+					myPage.FavouritesTable.ScrollDown()
+				case "k", "<Up>":
+					myPage.FavouritesTable.ScrollUp()
+				case "<C-d>":
+					myPage.FavouritesTable.ScrollHalfPageDown()
+				case "<C-u>":
+					myPage.FavouritesTable.ScrollHalfPageUp()
+				case "<C-f>":
+					myPage.FavouritesTable.ScrollPageDown()
+				case "<C-b>":
+					myPage.FavouritesTable.ScrollPageUp()
+				case "g":
+					if previousKey == "g" {
+						myPage.FavouritesTable.ScrollTop()
+					}
+				case "<Home>":
+					myPage.FavouritesTable.ScrollTop()
+				case "G", "<End>":
+					myPage.FavouritesTable.ScrollBottom()
+
+				// Sort Ascending
+				case "1", "2":
+					idx, _ := strconv.Atoi(e.ID)
+					favSortIdx = idx - 1
+					myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+					favSortAsc = true
+					utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+
+				// Sort Descending
+				case "<F1>", "<F2>":
+					myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+					idx, _ := strconv.Atoi(e.ID[2:3])
+					favSortIdx = idx - 1
+					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+					favSortAsc = false
+					utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+
+				}
+				ui.Render(myPage.Grid)
+				if previousKey == "g" {
+					previousKey = ""
+				} else {
+					previousKey = e.ID
 				}
 			}
 
@@ -147,12 +189,11 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 			case "FAVOURITES":
 				rows := [][]string{}
 				for symbol, price := range data.Favourites {
-					p := fmt.Sprintf("%.2f %s", price/currencyVal, currency)
+					p := fmt.Sprintf("%.2f", price/currencyVal)
 					rows = append(rows, []string{symbol, p})
 				}
-
+				myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 				myPage.FavouritesTable.Rows = rows
-				utils.SortData(myPage.FavouritesTable.Rows, 0, true, "FAVOURITES")
 
 			case "HISTORY":
 				// Update History graph
@@ -224,6 +265,18 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 					}
 				}
 				myPage.PriceBox.Rows[0][1] = change
+			}
+
+			if favSortIdx != -1 {
+				utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+
+				if favSortAsc {
+					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+				} else {
+					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+				}
+			} else {
+				utils.SortData(myPage.FavouritesTable.Rows, 0, true, "FAVOURITES")
 			}
 
 		case <-tick:

@@ -79,6 +79,11 @@ func SortData(data [][]string, sortIdx int, sortAsc bool, sortCase string) {
 			3: changeSort, // Change %
 		}
 
+	case "FAVOURITES":
+		sortFuncs = map[int]func(i, j int) bool{
+			0: strSort,   // Symbol
+			1: floatSort, // Price
+		}
 	default:
 		sortFuncs[sortIdx] = strSort
 	}

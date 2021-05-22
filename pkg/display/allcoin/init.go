@@ -60,8 +60,8 @@ func (page *AllCoinPage) InitAllCoin() {
 	page.FavouritesTable.ColResizer = func() {
 		x := page.FavouritesTable.Inner.Dx()
 		page.FavouritesTable.ColWidths = []int{
-			x / 2,
-			x / 2,
+			4 * x / 10,
+			6 * x / 10,
 		}
 	}
 	page.FavouritesTable.CursorColor = ui.ColorCyan

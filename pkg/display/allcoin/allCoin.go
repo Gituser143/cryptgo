@@ -31,14 +31,21 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
 
-	sortIdx := -1
-	sortAsc := false
+	coinSortIdx := -1
+	coinSortAsc := false
 	coinHeader := []string{
 		"Rank",
 		"Symbol",
 		fmt.Sprintf("Price (%s)", currency),
 		"Change %",
 		"Supply / MaxSupply",
+	}
+
+	favSortIdx := -1
+	favSortAsc := false
+	favHeader := []string{
+		"Symbol",
+		fmt.Sprintf("Price (%s)", currency),
 	}
 
 	previousKey := ""
@@ -289,41 +296,41 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					// Sort Ascending
 					case "1", "2", "3", "4":
 						idx, _ := strconv.Atoi(e.ID)
-						sortIdx = idx - 1
+						coinSortIdx = idx - 1
 						myPage.CoinTable.Header = append([]string{}, coinHeader...)
-						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + UP_ARROW
-						sortAsc = true
-						utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+						myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+						coinSortAsc = true
+						utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
 
 					// Sort Descending
 					case "<F1>", "<F2>", "<F3>", "<F4>":
 						myPage.CoinTable.Header = append([]string{}, coinHeader...)
 						idx, _ := strconv.Atoi(e.ID[2:3])
-						sortIdx = idx - 1
-						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + DOWN_ARROW
-						sortAsc = false
-						utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+						coinSortIdx = idx - 1
+						myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+						coinSortAsc = false
+						utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
 
 					}
 				} else if selectedTable == myPage.FavouritesTable {
 					switch e.ID {
 					// Sort Ascending
 					case "1", "2":
-						// idx, _ := strconv.Atoi(e.ID)
-						// sortIdx = idx - 1
-						// myPage.CoinTable.Header = append([]string{}, header...)
-						// myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + UP_ARROW
-						// sortAsc = true
-						// utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+						idx, _ := strconv.Atoi(e.ID)
+						favSortIdx = idx - 1
+						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+						favSortAsc = true
+						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
 					// Sort Descending
 					case "<F1>", "<F2>":
-						// myPage.CoinTable.Header = append([]string{}, header...)
-						// idx, _ := strconv.Atoi(e.ID[2:3])
-						// sortIdx = idx - 1
-						// myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + DOWN_ARROW
-						// sortAsc = false
-						// utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
+						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+						idx, _ := strconv.Atoi(e.ID[2:3])
+						favSortIdx = idx - 1
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+						favSortAsc = false
+						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 					}
 				}
 
@@ -353,6 +360,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					if err == nil {
 						price = fmt.Sprintf("%.2f", p/currencyVal)
 						myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
+						myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 					}
 
 					change := "NA"
@@ -407,15 +415,25 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				myPage.CoinTable.Rows = rows
 				myPage.FavouritesTable.Rows = favouritesData
 
-				if sortIdx != -1 {
-					utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
-					if sortAsc {
-						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + UP_ARROW
+				if coinSortIdx != -1 {
+					utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
+
+					if coinSortAsc {
+						myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
 					} else {
-						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + DOWN_ARROW
+						myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
 					}
 				}
-				utils.SortData(myPage.FavouritesTable.Rows, 0, true, "FAVOURITES")
+
+				if favSortIdx != -1 {
+					utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+
+					if favSortAsc {
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+					} else {
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+					}
+				}
 			}
 
 		case <-tick:
