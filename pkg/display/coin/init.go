@@ -10,6 +10,7 @@ type CoinPage struct {
 	Grid            *ui.Grid
 	FavouritesTable *widgets.Table
 	ValueGraph      *widgets.LineGraph
+	IntervalTable   *widgets.Table
 	PriceBox        *widgets.Table
 	VolumeGauge     *w.Gauge
 	DetailsTable    *widgets.Table
@@ -21,6 +22,7 @@ func NewCoinPage() *CoinPage {
 		Grid:            ui.NewGrid(),
 		FavouritesTable: widgets.NewTable(),
 		ValueGraph:      widgets.NewLineGraph(),
+		IntervalTable:   widgets.NewTable(),
 		PriceBox:        widgets.NewTable(),
 		VolumeGauge:     w.NewGauge(),
 		DetailsTable:    widgets.NewTable(),
@@ -45,7 +47,6 @@ func (page *CoinPage) InitCoin() {
 		}
 	}
 	page.FavouritesTable.CursorColor = ui.ColorCyan
-	page.FavouritesTable.ShowCursor = true
 
 	// Initialise Value Graph
 	page.ValueGraph.TitleStyle = ui.NewStyle(ui.ColorClear)
@@ -56,6 +57,28 @@ func (page *CoinPage) InitCoin() {
 	page.ValueGraph.BorderStyle.Fg = ui.ColorCyan
 	page.ValueGraph.Data["Max"] = []float64{}
 	page.ValueGraph.Data["Min"] = []float64{}
+
+	// Initialise Interval Table
+	page.IntervalTable.Title = " Graph Interval "
+	page.IntervalTable.BorderStyle.Fg = ui.ColorCyan
+	page.IntervalTable.TitleStyle.Fg = ui.ColorClear
+	page.IntervalTable.Header = []string{"Interval"}
+	page.IntervalTable.Rows = [][]string{
+		{"1  min"},
+		{"5  min"},
+		{"15 min"},
+		{"30 min"},
+		{"1  hour"},
+		{"2  hour"},
+		{"6  hour"},
+		{"12 hour"},
+		{"1  day"},
+	}
+	page.IntervalTable.ColResizer = func() {
+		x := page.IntervalTable.Inner.Dx()
+		page.IntervalTable.ColWidths = []int{x}
+	}
+	page.IntervalTable.CursorColor = ui.ColorCyan
 
 	// Initialise Price Box
 	page.PriceBox.Title = " Price & Change "
@@ -104,7 +127,10 @@ func (page *CoinPage) InitCoin() {
 	// Set Grid layout
 	w, h := ui.TerminalDimensions()
 	page.Grid.Set(
-		ui.NewCol(0.33, page.FavouritesTable),
+		ui.NewCol(0.33,
+			ui.NewRow(0.5, page.FavouritesTable),
+			ui.NewRow(0.5, page.IntervalTable),
+		),
 		ui.NewCol(0.67,
 			ui.NewRow(0.5, page.ValueGraph),
 			ui.NewRow(0.2,

@@ -16,6 +16,8 @@ import (
 type CoinData struct {
 	Type          string
 	PriceHistory  []float64
+	MinPrice      float64
+	MaxPrice      float64
 	CoinAssetData CoinAsset
 	Price         string
 	Favourites    map[string]float64
@@ -91,21 +93,30 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 	})
 }
 
-func GetCoinHistory(ctx context.Context, id string, interval *string, dataChannel chan CoinData) error {
-	url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=%s", id, *interval)
+func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string, dataChannel chan CoinData) error {
 	method := "GET"
 
 	client := &http.Client{}
-
-	// Create Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return err
-	}
+	i := "d1"
 
 	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func() error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case interval := <-intervalChannel:
+			i = interval
+		default:
+			break
+		}
+
+		url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=%s", id, i)
 		data := CoinHistory{}
 
+		// Create Request
+		req, err := http.NewRequest(method, url, nil)
+		if err != nil {
+			return err
+		}
 		// Send Request
 		res, err := client.Do(req)
 		if err != nil {
@@ -129,9 +140,17 @@ func GetCoinHistory(ctx context.Context, id string, interval *string, dataChanne
 			price = append(price, p)
 		}
 
+		min := utils.MinFloat64(price...)
+		max := utils.MaxFloat64(price...)
+		for i, val := range price {
+			price[i] = val - min
+		}
+
 		coinData := CoinData{
 			Type:         "HISTORY",
 			PriceHistory: price,
+			MinPrice:     min,
+			MaxPrice:     max,
 		}
 
 		select {

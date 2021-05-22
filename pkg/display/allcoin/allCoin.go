@@ -153,6 +153,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							currency = "USD $"
 						}
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
+						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
 
 					selectedTable = myPage.CoinTable
@@ -255,11 +256,16 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						eg, coinCtx := errgroup.WithContext(ctx)
 						coinDataChannel := make(chan api.CoinData)
 						coinPriceChannel := make(chan string)
-						interval := "d1"
+						intervalChannel := make(chan string)
 
 						ui.Clear()
 						eg.Go(func() error {
-							err := api.GetCoinHistory(coinCtx, id, &interval, coinDataChannel)
+							err := api.GetCoinHistory(
+								coinCtx,
+								id,
+								intervalChannel,
+								coinDataChannel,
+							)
 							return err
 						})
 
@@ -269,7 +275,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						})
 
 						eg.Go(func() error {
-							err := api.GetFavouritePrices(coinCtx, favourites, coinDataChannel)
+							err := api.GetFavouritePrices(coinCtx,
+								favourites,
+								coinDataChannel,
+							)
 							return err
 						})
 
@@ -277,7 +286,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						go api.GetLivePrice(coinCtx, id, coinPriceChannel)
 
 						eg.Go(func() error {
-							err := coin.DisplayCoin(coinCtx, id, &interval, coinDataChannel, coinPriceChannel, uiEvents)
+							err := coin.DisplayCoin(
+								coinCtx,
+								id,
+								intervalChannel,
+								coinDataChannel,
+								coinPriceChannel,
+								uiEvents,
+							)
 							return err
 						})
 
@@ -354,13 +370,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			} else {
 				rows := [][]string{}
 				favouritesData := [][]string{}
+				myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
+				myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 				for _, val := range data.Data {
 					price := "NA"
 					p, err := strconv.ParseFloat(val.PriceUsd, 64)
 					if err == nil {
 						price = fmt.Sprintf("%.2f", p/currencyVal)
-						myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
-						myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 					}
 
 					change := "NA"

@@ -17,7 +17,7 @@ const (
 	DOWN_ARROW = "▼"
 )
 
-func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel chan api.CoinData, priceChannel chan string, uiEvents <-chan ui.Event) error {
+func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, dataChannel chan api.CoinData, priceChannel chan string, uiEvents <-chan ui.Event) error {
 	defer ui.Clear()
 
 	myPage := NewCoinPage()
@@ -27,6 +27,9 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
 
+	selectedTable := myPage.IntervalTable
+	selectedTable.ShowCursor = true
+
 	previousKey := ""
 
 	favSortIdx := -1
@@ -34,6 +37,18 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 	favHeader := []string{
 		"Symbol",
 		fmt.Sprintf("Price (%s)", currency),
+	}
+
+	intervals := map[string]string{
+		"1  min":  "m1",
+		"5  min":  "m5",
+		"15 min":  "m15",
+		"30 min":  "m30",
+		"1  hour": "h1",
+		"2  hour": "h2",
+		"6  hour": "h6",
+		"12 hour": "h12",
+		"1  day":  "d1",
 	}
 
 	updateUI := func() {
@@ -84,6 +99,15 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 				selectCurrency = true
 				currencyWidget.UpdateAll()
 				updateUI()
+
+			case "f":
+				selectedTable.ShowCursor = false
+				selectedTable = myPage.FavouritesTable
+
+			case "F":
+				selectedTable.ShowCursor = false
+				selectedTable = myPage.IntervalTable
+
 			}
 			if selectCurrency {
 				switch e.ID {
@@ -117,6 +141,7 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 							currencyVal = 0
 							currency = "USD $"
 						}
+						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
 					selectCurrency = false
 				case "<Escape>":
@@ -126,48 +151,89 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 					ui.Render(currencyWidget)
 				}
 			} else {
-				myPage.FavouritesTable.ShowCursor = true
-				switch e.ID {
-				case "j", "<Down>":
-					myPage.FavouritesTable.ScrollDown()
-				case "k", "<Up>":
-					myPage.FavouritesTable.ScrollUp()
-				case "<C-d>":
-					myPage.FavouritesTable.ScrollHalfPageDown()
-				case "<C-u>":
-					myPage.FavouritesTable.ScrollHalfPageUp()
-				case "<C-f>":
-					myPage.FavouritesTable.ScrollPageDown()
-				case "<C-b>":
-					myPage.FavouritesTable.ScrollPageUp()
-				case "g":
-					if previousKey == "g" {
+				if selectedTable == myPage.FavouritesTable {
+					myPage.FavouritesTable.ShowCursor = true
+					switch e.ID {
+					case "j", "<Down>":
+						myPage.FavouritesTable.ScrollDown()
+					case "k", "<Up>":
+						myPage.FavouritesTable.ScrollUp()
+					case "<C-d>":
+						myPage.FavouritesTable.ScrollHalfPageDown()
+					case "<C-u>":
+						myPage.FavouritesTable.ScrollHalfPageUp()
+					case "<C-f>":
+						myPage.FavouritesTable.ScrollPageDown()
+					case "<C-b>":
+						myPage.FavouritesTable.ScrollPageUp()
+					case "g":
+						if previousKey == "g" {
+							myPage.FavouritesTable.ScrollTop()
+						}
+					case "<Home>":
 						myPage.FavouritesTable.ScrollTop()
+					case "G", "<End>":
+						myPage.FavouritesTable.ScrollBottom()
+
+					// Sort Ascending
+					case "1", "2":
+						idx, _ := strconv.Atoi(e.ID)
+						favSortIdx = idx - 1
+						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+						favSortAsc = true
+						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+
+					// Sort Descending
+					case "<F1>", "<F2>":
+						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+						idx, _ := strconv.Atoi(e.ID[2:3])
+						favSortIdx = idx - 1
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+						favSortAsc = false
+						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+
 					}
-				case "<Home>":
-					myPage.FavouritesTable.ScrollTop()
-				case "G", "<End>":
-					myPage.FavouritesTable.ScrollBottom()
+				} else {
+					myPage.IntervalTable.ShowCursor = true
 
-				// Sort Ascending
-				case "1", "2":
-					idx, _ := strconv.Atoi(e.ID)
-					favSortIdx = idx - 1
-					myPage.FavouritesTable.Header = append([]string{}, favHeader...)
-					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
-					favSortAsc = true
-					utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+					switch e.ID {
+					case "j", "<Down>":
+						myPage.IntervalTable.ScrollDown()
+					case "k", "<Up>":
+						myPage.IntervalTable.ScrollUp()
+					case "<C-d>":
+						myPage.IntervalTable.ScrollHalfPageDown()
+					case "<C-u>":
+						myPage.IntervalTable.ScrollHalfPageUp()
+					case "<C-f>":
+						myPage.IntervalTable.ScrollPageDown()
+					case "<C-b>":
+						myPage.IntervalTable.ScrollPageUp()
+					case "g":
+						if previousKey == "g" {
+							myPage.IntervalTable.ScrollTop()
+						}
+					case "<Home>":
+						myPage.IntervalTable.ScrollTop()
+					case "G", "<End>":
+						myPage.IntervalTable.ScrollBottom()
+					case "<Enter>":
+						if myPage.IntervalTable.SelectedRow < len(myPage.IntervalTable.Rows) {
+							row := myPage.IntervalTable.Rows[myPage.IntervalTable.SelectedRow]
+							val := row[0]
+							myPage.ValueGraph.Data["Value"] = []float64{}
 
-				// Sort Descending
-				case "<F1>", "<F2>":
-					myPage.FavouritesTable.Header = append([]string{}, favHeader...)
-					idx, _ := strconv.Atoi(e.ID[2:3])
-					favSortIdx = idx - 1
-					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
-					favSortAsc = false
-					utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
-
+							// Started new routine to avoid deadlock
+							//   GetCoinHistory blocks on dataChannel <- data
+							//   Display Coin blocks on intervalChannel <- interval
+							go func() {
+								intervalChannel <- intervals[val]
+							}()
+						}
+					}
 				}
+
 				ui.Render(myPage.Grid)
 				if previousKey == "g" {
 					previousKey = ""
@@ -199,8 +265,8 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 				// Update History graph
 				price := data.PriceHistory
 				myPage.ValueGraph.Data["Value"] = price
-				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", utils.MaxFloat64(price...)/currencyVal, currency)
-				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", utils.MinFloat64(price...)/currencyVal, currency)
+				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", data.MaxPrice/currencyVal, currency)
+				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", data.MinPrice/currencyVal, currency)
 
 			case "ASSET":
 				// Update Details table
