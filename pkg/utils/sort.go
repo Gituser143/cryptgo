@@ -83,6 +83,10 @@ func SortData(data [][]string, sortIdx int, sortAsc bool, sortCase string) {
 		sortFuncs[sortIdx] = strSort
 	}
 
+	if _, ok := sortFuncs[sortIdx]; !ok {
+		sortIdx = 0
+	}
+
 	// Sort data
 	sort.Slice(data, sortFuncs[sortIdx])
 }

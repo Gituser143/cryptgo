@@ -33,7 +33,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 	sortIdx := -1
 	sortAsc := false
-	header := []string{
+	coinHeader := []string{
 		"Rank",
 		"Symbol",
 		fmt.Sprintf("Price (%s)", currency),
@@ -145,7 +145,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							currencyVal = 0
 							currency = "USD $"
 						}
-						header[2] = fmt.Sprintf("Price (%s)", currency)
+						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
 					}
 
 					selectedTable = myPage.CoinTable
@@ -290,17 +290,17 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					case "1", "2", "3", "4":
 						idx, _ := strconv.Atoi(e.ID)
 						sortIdx = idx - 1
-						myPage.CoinTable.Header = append([]string{}, header...)
-						myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + UP_ARROW
+						myPage.CoinTable.Header = append([]string{}, coinHeader...)
+						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + UP_ARROW
 						sortAsc = true
 						utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
 
 					// Sort Descending
 					case "<F1>", "<F2>", "<F3>", "<F4>":
-						myPage.CoinTable.Header = append([]string{}, header...)
+						myPage.CoinTable.Header = append([]string{}, coinHeader...)
 						idx, _ := strconv.Atoi(e.ID[2:3])
 						sortIdx = idx - 1
-						myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + DOWN_ARROW
+						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + DOWN_ARROW
 						sortAsc = false
 						utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
 
@@ -410,12 +410,12 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				if sortIdx != -1 {
 					utils.SortData(myPage.CoinTable.Rows, sortIdx, sortAsc, "COINS")
 					if sortAsc {
-						myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + UP_ARROW
+						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + UP_ARROW
 					} else {
-						myPage.CoinTable.Header[sortIdx] = header[sortIdx] + " " + DOWN_ARROW
+						myPage.CoinTable.Header[sortIdx] = coinHeader[sortIdx] + " " + DOWN_ARROW
 					}
 				}
-
+				utils.SortData(myPage.FavouritesTable.Rows, 0, true, "FAVOURITES")
 			}
 
 		case <-tick:

@@ -18,7 +18,7 @@ type CoinData struct {
 	PriceHistory  []float64
 	CoinAssetData CoinAsset
 	Price         string
-	Favourites    [][]string
+	Favourites    map[string]float64
 }
 
 type CoinAsset struct {
@@ -36,7 +36,7 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 		var wg sync.WaitGroup
 		var m sync.Mutex
 
-		favouriteData := [][]string{}
+		favouriteData := make(map[string]float64)
 
 		for id := range favourites {
 			wg.Add(1)
@@ -63,12 +63,13 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 					return
 				}
 
-				m.Lock()
-				favouriteData = append(favouriteData, []string{
-					data.Data.Symbol,
-					data.Data.PriceUsd,
-				})
-				m.Unlock()
+				price, err := strconv.ParseFloat(data.Data.PriceUsd, 64)
+				if err == nil {
+					m.Lock()
+					favouriteData[data.Data.Symbol] = price
+					m.Unlock()
+				}
+
 				wg.Done()
 			}(id, &wg, &m)
 		}

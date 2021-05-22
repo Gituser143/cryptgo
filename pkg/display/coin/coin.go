@@ -145,7 +145,14 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 			switch data.Type {
 
 			case "FAVOURITES":
-				myPage.FavouritesTable.Rows = data.Favourites
+				rows := [][]string{}
+				for symbol, price := range data.Favourites {
+					p := fmt.Sprintf("%.2f %s", price/currencyVal, currency)
+					rows = append(rows, []string{symbol, p})
+				}
+
+				myPage.FavouritesTable.Rows = rows
+				utils.SortData(myPage.FavouritesTable.Rows, 0, true, "FAVOURITES")
 
 			case "HISTORY":
 				// Update History graph
@@ -157,11 +164,25 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 			case "ASSET":
 				// Update Details table
 				myPage.DetailsTable.Header = []string{"Name", data.CoinAssetData.Data.Name}
+
+				mCapStr := ""
+				mCap, err := strconv.ParseFloat(data.CoinAssetData.Data.MarketCapUsd, 64)
+				if err == nil {
+					mCapVals, units := utils.RoundValues(mCap, 0)
+					mCapStr = fmt.Sprintf("%.2f %s %s", mCapVals[0]/currencyVal, units, currency)
+				}
+
+				vwapStr := ""
+				vwap, err := strconv.ParseFloat(data.CoinAssetData.Data.Vwap24Hr, 64)
+				if err == nil {
+					vwapStr = fmt.Sprintf("%.2f %s", vwap/currencyVal, currency)
+				}
+
 				rows := [][]string{
 					{"Symbol", data.CoinAssetData.Data.Symbol},
 					{"Rank", data.CoinAssetData.Data.Rank},
-					{"Market Cap USD", data.CoinAssetData.Data.MarketCapUsd},
-					{"VWAP 24Hr", data.CoinAssetData.Data.Vwap24Hr},
+					{"Market Cap", mCapStr},
+					{"VWAP 24Hr", vwapStr},
 					{"Explorer", data.CoinAssetData.Data.Explorer},
 				}
 
@@ -173,12 +194,13 @@ func DisplayCoin(ctx context.Context, id string, interval *string, dataChannel c
 				myPage.DetailsTable.Rows = rows
 
 				// Update Volume Guage
-				vol, err1 := strconv.ParseFloat(data.CoinAssetData.Data.VolumeUsd24Hr, 64)
-				mCap, err2 := strconv.ParseFloat(data.CoinAssetData.Data.MarketCapUsd, 64)
-				if err1 == nil && err2 == nil {
-					percent := int((vol / mCap) * 100)
-					if percent <= 100 && percent >= 0 {
-						myPage.VolumeGauge.Percent = percent
+				vol, err := strconv.ParseFloat(data.CoinAssetData.Data.VolumeUsd24Hr, 64)
+				if err == nil {
+					if mCap > 0 {
+						percent := int((vol / mCap) * 100)
+						if percent <= 100 && percent >= 0 {
+							myPage.VolumeGauge.Percent = percent
+						}
 					}
 				}
 
