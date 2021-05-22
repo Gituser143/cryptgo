@@ -330,8 +330,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						// Create new errorgroup for coin page
 						eg, coinCtx := errgroup.WithContext(ctx)
 						coinDataChannel := make(chan api.CoinData)
-						coinPriceChannel := make(chan string)
-						intervalChannel := make(chan string)
+						coinPriceChannel := make(chan string, 10)
+						intervalChannel := make(chan string, 10)
 
 						// Clear UI
 						ui.Clear()

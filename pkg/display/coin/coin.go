@@ -127,6 +127,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				}
 			case "q", "<C-c>":
 				return fmt.Errorf("coin UI Closed")
+
 			case "<Resize>":
 				updateUI()
 
