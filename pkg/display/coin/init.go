@@ -1,3 +1,19 @@
+/*
+Copyright © 2021 Bhargav SNV bhargavsnv100@gmail.com
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package coin
 
 import (
@@ -6,6 +22,7 @@ import (
 	w "github.com/gizak/termui/v3/widgets"
 )
 
+// CoinPage holds UI items for a coin page
 type CoinPage struct {
 	Grid            *ui.Grid
 	FavouritesTable *widgets.Table
@@ -17,6 +34,7 @@ type CoinPage struct {
 	SupplyChart     *widgets.BarChart
 }
 
+// NewCoinPage creates, initialises and returns a pointer to an instance of CoinPage
 func NewCoinPage() *CoinPage {
 	page := &CoinPage{
 		Grid:            ui.NewGrid(),
@@ -33,6 +51,7 @@ func NewCoinPage() *CoinPage {
 	return page
 }
 
+// InitCoin initialises the widgets of an CoinPage
 func (page *CoinPage) InitCoin() {
 	// Initialise Favourites table
 	page.FavouritesTable.Title = " Favourites "

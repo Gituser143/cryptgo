@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
@@ -36,29 +37,28 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cryptgo",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Short: "A terminal application to watch crypto prices!",
+	Long:  `Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		// Context and errgroup used to manage routines
 		eg, ctx := errgroup.WithContext(context.Background())
 		dataChannel := make(chan api.AssetData)
+
+		// Flag to determine if data must be sent when viewing per coin prices
 		sendData := true
 
+		// Fetch Coin Assets
 		eg.Go(func() error {
 			return api.GetAssets(ctx, dataChannel, &sendData)
 		})
 
+		// Fetch Top 3 coin history
 		eg.Go(func() error {
 			return api.GetTopCoinData(ctx, dataChannel, &sendData)
 		})
 
+		// Display UI for overall coins
 		eg.Go(func() error {
 			return allcoin.DisplayAllCoins(ctx, dataChannel, &sendData)
 		})
@@ -85,10 +85,6 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cryptgo.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initConfig reads in config file and ENV variables if set.

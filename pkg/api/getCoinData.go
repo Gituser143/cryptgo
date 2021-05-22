@@ -1,3 +1,19 @@
+/*
+Copyright © 2021 Bhargav SNV bhargavsnv100@gmail.com
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package api
 
 import (
@@ -13,6 +29,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// API Documentation can be found at https://docs.coincap.io/
+
+// CoinData Holds data pertaining to a single coin.
+// This is used to serve per coin details.
+// It additionally holds a map of favourite coins.
 type CoinData struct {
 	Type          string
 	PriceHistory  []float64
@@ -23,14 +44,18 @@ type CoinData struct {
 	Favourites    map[string]float64
 }
 
+// CoinAsset holds Asset data for a single coin
 type CoinAsset struct {
 	Data      Asset `json:"data"`
 	TimeStamp uint  `json:"timestamp"`
 }
 
+// GetFavouritePrices gets coin prices for coins specified by favourites.
+// This data is returned on the dataChannel.
 func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataChannel chan CoinData) error {
 	method := "GET"
 
+	// Init Client
 	client := &http.Client{}
 
 	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
@@ -40,6 +65,7 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 
 		favouriteData := make(map[string]float64)
 
+		// Iterate over favorite coins
 		for id := range favourites {
 			wg.Add(1)
 			go func(id string, wg *sync.WaitGroup, m *sync.Mutex) {
@@ -65,6 +91,7 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 					return
 				}
 
+				// Get price
 				price, err := strconv.ParseFloat(data.Data.PriceUsd, 64)
 				if err == nil {
 					m.Lock()
@@ -78,11 +105,13 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 
 		wg.Wait()
 
+		// Aggregate data
 		coinData := CoinData{
 			Type:       "FAVOURITES",
 			Favourites: favouriteData,
 		}
 
+		// Send data
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -93,10 +122,15 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 	})
 }
 
+// GetCoinHistory gets price history of a coin specified by id, for an interval
+// received through the interval channel.
 func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string, dataChannel chan CoinData) error {
 	method := "GET"
 
+	// Init Client
 	client := &http.Client{}
+
+	// Set Default Interval to 1 day
 	i := "d1"
 
 	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func() error {
@@ -104,6 +138,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		case <-ctx.Done():
 			return ctx.Err()
 		case interval := <-intervalChannel:
+			// Update interval
 			i = interval
 		default:
 			break
@@ -130,6 +165,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 			return err
 		}
 
+		// Aggregate price history
 		price := []float64{}
 		for _, v := range data.Data {
 			p, err := strconv.ParseFloat(v.Price, 64)
@@ -140,12 +176,16 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 			price = append(price, p)
 		}
 
+		// Set max and min
 		min := utils.MinFloat64(price...)
 		max := utils.MaxFloat64(price...)
+
+		// Clean price for graphs
 		for i, val := range price {
 			price[i] = val - min
 		}
 
+		// Aggregate data
 		coinData := CoinData{
 			Type:         "HISTORY",
 			PriceHistory: price,
@@ -153,6 +193,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 			MaxPrice:     max,
 		}
 
+		// Send Data
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -163,10 +204,13 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 	})
 }
 
+// GetCoinAsset fetches asset data for a coin specified by id
+// and sends the data on dataChannel
 func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) error {
 	url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/", id)
 	method := "GET"
 
+	// Init client
 	client := &http.Client{}
 
 	// Create Request
@@ -191,11 +235,13 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			return err
 		}
 
+		// Aggregate data
 		coinData := CoinData{
 			Type:          "ASSET",
 			CoinAssetData: data,
 		}
 
+		// Send data
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -206,6 +252,8 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 	})
 }
 
+// GetLivePrice uses a websocket to stream realtime prices of a coin specified
+// by id. The prices are sent on the dataChannel
 func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error {
 	url := fmt.Sprintf("wss://ws.coincap.io/prices?assets=%s", id)
 	c, _, err := websocket.DefaultDialer.DialContext(ctx, url, nil)

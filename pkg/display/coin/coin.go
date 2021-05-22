@@ -1,3 +1,19 @@
+/*
+Copyright © 2021 Bhargav SNV bhargavsnv100@gmail.com
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package coin
 
 import (
@@ -18,21 +34,26 @@ const (
 	DOWN_ARROW = "▼"
 )
 
+// DisplayCoin displays the per coin values and details along with a favourites table. It uses the same uiEvents channel as the root page
 func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, dataChannel chan api.CoinData, priceChannel chan string, uiEvents <-chan ui.Event) error {
 	defer ui.Clear()
 
+	// Init Coin page
 	myPage := NewCoinPage()
 
+	// variables for currency
 	currency := "USD $"
 	currencyVal := 1.0
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
 
+	// Selection of default table
 	selectedTable := myPage.IntervalTable
 	selectedTable.ShowCursor = true
 
 	previousKey := ""
 
+	// variables to sort favourites table
 	favSortIdx := -1
 	favSortAsc := false
 	favHeader := []string{
@@ -40,6 +61,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		fmt.Sprintf("Price (%s)", currency),
 	}
 
+	// intervals holds interval mappings to be used in the call to the history API
 	intervals := map[string]string{
 		"1  min":  "m1",
 		"5  min":  "m5",
@@ -52,12 +74,14 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		"1  day":  "d1",
 	}
 
+	// Initialise help menu
 	help := widgets.NewHelpMenu()
 	help.SelectHelpMenu("COIN")
 	helpSelected := false
 
+	// UpdateUI to refresh UI
 	updateUI := func() {
-		// Get Terminal Dimensions adn clear the UI
+		// Get Terminal Dimensions
 		w, h := ui.TerminalDimensions()
 
 		// Adjust Suuply chart Bar graph values
@@ -65,7 +89,10 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 
 		myPage.Grid.SetRect(0, 0, w, h)
 
+		// Clear UI
 		ui.Clear()
+
+		// Render required widgets
 		if helpSelected {
 			help.Resize(w, h)
 			ui.Render(help)
@@ -77,17 +104,19 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		}
 	}
 
+	// Render empty UI
 	updateUI()
 
+	// Create ticker to periodically refresh UI
 	t := time.NewTicker(time.Duration(1) * time.Second)
 	tick := t.C
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-ctx.Done(): // Context cancelled, exit
 			return ctx.Err()
 
-		case e := <-uiEvents:
+		case e := <-uiEvents: // keyboard events
 			switch e.ID {
 			case "<Escape>":
 				if !helpSelected {
@@ -170,17 +199,24 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					currencyWidget.ScrollBottom()
 				case "<Enter>":
 					var err error
+
+					// Update Currency
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
 						row := currencyWidget.Rows[currencyWidget.SelectedRow]
+
+						// Get currency and rate
 						currency = fmt.Sprintf("%s %s", row[0], row[1])
 						currencyVal, err = strconv.ParseFloat(row[3], 64)
 						if err != nil {
 							currencyVal = 0
 							currency = "USD $"
 						}
+
+						// Update currency fields
 						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
 					selectCurrency = false
+
 				case "<Escape>":
 					selectCurrency = false
 				}
@@ -256,7 +292,9 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					case "G", "<End>":
 						myPage.IntervalTable.ScrollBottom()
 					case "<Enter>":
+						// Update interval
 						if myPage.IntervalTable.SelectedRow < len(myPage.IntervalTable.Rows) {
+							// Get interval
 							row := myPage.IntervalTable.Rows[myPage.IntervalTable.SelectedRow]
 							val := row[0]
 							myPage.ValueGraph.Data["Value"] = []float64{}
@@ -265,6 +303,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 							//   GetCoinHistory blocks on dataChannel <- data
 							//   Display Coin blocks on intervalChannel <- interval
 							go func() {
+								// Send new interval for GetCoinHistory
 								intervalChannel <- intervals[val]
 							}()
 						}
@@ -280,6 +319,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 			}
 
 		case data := <-priceChannel:
+			// Update live price
 			p, _ := strconv.ParseFloat(data, 64)
 			myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
 			if !selectCurrency && !helpSelected {
@@ -290,6 +330,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 			switch data.Type {
 
 			case "FAVOURITES":
+				// Update favorites table
 				rows := [][]string{}
 				for symbol, price := range data.Favourites {
 					p := fmt.Sprintf("%.2f", price/currencyVal)
@@ -301,6 +342,8 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 			case "HISTORY":
 				// Update History graph
 				price := data.PriceHistory
+
+				// Set value, min 7 max price
 				myPage.ValueGraph.Data["Value"] = price
 				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", data.MaxPrice/currencyVal, currency)
 				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", data.MinPrice/currencyVal, currency)
@@ -309,6 +352,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				// Update Details table
 				myPage.DetailsTable.Header = []string{"Name", data.CoinAssetData.Data.Name}
 
+				// Get Market Cap
 				mCapStr := ""
 				mCap, err := strconv.ParseFloat(data.CoinAssetData.Data.MarketCapUsd, 64)
 				if err == nil {
@@ -316,12 +360,14 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					mCapStr = fmt.Sprintf("%.2f %s %s", mCapVals[0]/currencyVal, units, currency)
 				}
 
+				// Get Volume Weighted Average price
 				vwapStr := ""
 				vwap, err := strconv.ParseFloat(data.CoinAssetData.Data.Vwap24Hr, 64)
 				if err == nil {
 					vwapStr = fmt.Sprintf("%.2f %s", vwap/currencyVal, currency)
 				}
 
+				// Aggregate data
 				rows := [][]string{
 					{"Symbol", data.CoinAssetData.Data.Symbol},
 					{"Rank", data.CoinAssetData.Data.Rank},
@@ -330,6 +376,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					{"Explorer", data.CoinAssetData.Data.Explorer},
 				}
 
+				// Update value label in history graph
 				p, err := strconv.ParseFloat(data.CoinAssetData.Data.PriceUsd, 64)
 				if err == nil {
 					myPage.ValueGraph.Labels["Value"] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
@@ -348,6 +395,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					}
 				}
 
+				// Get supply and Max supply
 				supply, err1 := strconv.ParseFloat(data.CoinAssetData.Data.Supply, 64)
 				maxSupply, err2 := strconv.ParseFloat(data.CoinAssetData.Data.MaxSupply, 64)
 
@@ -370,6 +418,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				myPage.PriceBox.Rows[0][1] = change
 			}
 
+			// Sort favourites table
 			if favSortIdx != -1 {
 				utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
@@ -382,7 +431,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				utils.SortData(myPage.FavouritesTable.Rows, 0, true, "FAVOURITES")
 			}
 
-		case <-tick:
+		case <-tick: // Refresh UI
 			updateUI()
 		}
 	}

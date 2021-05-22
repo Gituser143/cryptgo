@@ -1,3 +1,19 @@
+/*
+Copyright © 2021 Bhargav SNV bhargavsnv100@gmail.com
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package api
 
 import (
@@ -11,6 +27,9 @@ import (
 	"github.com/Gituser143/cryptgo/pkg/utils"
 )
 
+// API Documentation can be found at https://docs.coincap.io/
+
+// Asset holds details of a single coin
 type Asset struct {
 	Id                string `json:"id"`
 	Rank              string `json:"rank"`
@@ -26,6 +45,8 @@ type Asset struct {
 	Explorer          string `json:"explorer"`
 }
 
+// AssetData is used to hold details of multiple coins and the price history
+// of top ranked coins along with their names
 type AssetData struct {
 	IsTopCoinData bool
 	Data          []Asset `json:"data"`
@@ -34,16 +55,21 @@ type AssetData struct {
 	TopCoins      []string
 }
 
+// CoinPrice holds the price of a coin at a given time
 type CoinPrice struct {
 	Price     string `json:"priceUsd"`
 	Timestamp uint   `json:"time"`
 }
 
+// CoinHistory holds a slice of CoinPrice, as history of coin value
 type CoinHistory struct {
 	Data      []CoinPrice `json:"data"`
 	Timestamp uint        `json:"timestamp"`
 }
 
+// Get Assets contacts the 'api.coincap.io/v2/assets' endpoint to get asset
+// information of top 100 coins. It then serves this information through the
+// dataChannel
 func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 	url := "https://api.coincap.io/v2/assets"
 	method := "GET"
@@ -54,6 +80,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 		return err
 	}
 
+	// Init Client
 	client := &http.Client{}
 
 	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
@@ -73,6 +100,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 				return err
 			}
 
+			// Send Data
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -84,6 +112,11 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 	})
 }
 
+// GetTopCoinData first fetches the top 3 ranked coins by contacting the
+// 'api.coincap.io/v2/assets' endpoint. Following which, the history of each of
+// these coin is queried to the endpoint
+// 'api.coincap.io/v2/assets/{id}/history'. This history data is served
+//  on the dataChannel
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 	url := "https://api.coincap.io/v2/assets?limit=3"
 	method := "GET"
@@ -94,6 +127,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 		return err
 	}
 
+	// Init Client
 	client := &http.Client{}
 
 	return utils.LoopTick(ctx, time.Duration(5)*time.Second, func() error {
@@ -126,6 +160,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 					return err
 				}
 
+				// Fetch History
 				res, err := client.Do(req)
 				if err != nil {
 					return err
@@ -140,6 +175,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 					return err
 				}
 
+				// Aggregate price
 				price := []float64{}
 				for _, v := range historyData.Data {
 					p, err := strconv.ParseFloat(v.Price, 64)
@@ -154,10 +190,12 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 				topCoins[i] = val.Name
 			}
 
+			// Aggregate data
 			data.TopCoinData = topCoinData
 			data.TopCoins = topCoins
 			data.IsTopCoinData = true
 
+			// Send data
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
