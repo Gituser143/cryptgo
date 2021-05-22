@@ -9,6 +9,7 @@ import (
 	"github.com/Gituser143/cryptgo/pkg/api"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/utils"
+	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
 )
 
@@ -51,6 +52,10 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		"1  day":  "d1",
 	}
 
+	help := widgets.NewHelpMenu()
+	help.SelectHelpMenu("COIN")
+	helpSelected := false
+
 	updateUI := func() {
 		// Get Terminal Dimensions adn clear the UI
 		w, h := ui.TerminalDimensions()
@@ -61,7 +66,10 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		myPage.Grid.SetRect(0, 0, w, h)
 
 		ui.Clear()
-		if selectCurrency {
+		if helpSelected {
+			help.Resize(w, h)
+			ui.Render(help)
+		} else if selectCurrency {
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
 		} else {
@@ -82,34 +90,63 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		case e := <-uiEvents:
 			switch e.ID {
 			case "<Escape>":
-				if !selectCurrency {
-					selectCurrency = false
-					return fmt.Errorf("UI Closed")
+				if !helpSelected {
+					if !selectCurrency {
+						selectCurrency = false
+						return fmt.Errorf("UI Closed")
+					}
 				}
 			case "q", "<C-c>":
 				return fmt.Errorf("coin UI Closed")
 			case "<Resize>":
 				updateUI()
-			case "c":
-				selectCurrency = true
-				currencyWidget.UpdateRows()
+
+			case "?":
+				helpSelected = !helpSelected
 				updateUI()
 
+			case "c":
+				if !helpSelected {
+					selectCurrency = true
+					currencyWidget.UpdateRows()
+					updateUI()
+				}
+
 			case "C":
-				selectCurrency = true
-				currencyWidget.UpdateAll()
+				if !helpSelected {
+					selectCurrency = true
+					currencyWidget.UpdateAll()
+				}
 				updateUI()
 
 			case "f":
-				selectedTable.ShowCursor = false
-				selectedTable = myPage.FavouritesTable
+				if !helpSelected {
+					selectedTable.ShowCursor = false
+					selectedTable = myPage.FavouritesTable
+				}
 
 			case "F":
-				selectedTable.ShowCursor = false
-				selectedTable = myPage.IntervalTable
+				if !helpSelected {
+					selectedTable.ShowCursor = false
+					selectedTable = myPage.IntervalTable
+				}
 
 			}
-			if selectCurrency {
+			if helpSelected {
+				switch e.ID {
+				case "?":
+					updateUI()
+				case "<Escape>":
+					helpSelected = false
+					updateUI()
+				case "j", "<Down>":
+					help.List.ScrollDown()
+					ui.Render(help)
+				case "k", "<Up>":
+					help.List.ScrollUp()
+					ui.Render(help)
+				}
+			} else if selectCurrency {
 				switch e.ID {
 				case "j", "<Down>":
 					currencyWidget.ScrollDown()
@@ -245,7 +282,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		case data := <-priceChannel:
 			p, _ := strconv.ParseFloat(data, 64)
 			myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
-			if !selectCurrency {
+			if !selectCurrency && !helpSelected {
 				ui.Render(myPage.PriceBox)
 			}
 

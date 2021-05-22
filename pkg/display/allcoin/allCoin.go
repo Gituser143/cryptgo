@@ -10,6 +10,7 @@ import (
 	"github.com/Gituser143/cryptgo/pkg/display/coin"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/utils"
+	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
 	"golang.org/x/sync/errgroup"
 )
@@ -58,6 +59,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	favourites := utils.GetFavourites()
 	defer utils.SaveFavourites(favourites)
 
+	help := widgets.NewHelpMenu()
+	help.SelectHelpMenu("ALL")
+	helpSelected := false
+
 	pause := func() {
 		*sendData = !(*sendData)
 	}
@@ -68,7 +73,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		myPage.Grid.SetRect(0, 0, w, h)
 
 		ui.Clear()
-		if selectCurrency {
+		if helpSelected {
+			help.Resize(w, h)
+			ui.Render(help)
+		} else if selectCurrency {
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
 		} else {
@@ -98,29 +106,55 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			case "p":
 				pause()
 
+			case "?":
+				helpSelected = !helpSelected
+				updateUI()
+
 			case "f":
-				selectedTable.ShowCursor = false
-				selectedTable = myPage.FavouritesTable
+				if !helpSelected {
+					selectedTable.ShowCursor = false
+					selectedTable = myPage.FavouritesTable
+				}
 
 			case "F":
-				selectedTable.ShowCursor = false
-				selectedTable = myPage.CoinTable
+				if !helpSelected {
+					selectedTable.ShowCursor = false
+					selectedTable = myPage.CoinTable
+				}
 
 			case "c":
-				selectedTable.ShowCursor = false
-				selectCurrency = true
-				selectedTable.ShowCursor = true
-				currencyWidget.UpdateRows()
-				updateUI()
+				if !helpSelected {
+					selectedTable.ShowCursor = false
+					selectCurrency = true
+					selectedTable.ShowCursor = true
+					currencyWidget.UpdateRows()
+					updateUI()
+				}
 
 			case "C":
-				selectedTable.ShowCursor = false
-				selectCurrency = true
-				selectedTable.ShowCursor = true
-				currencyWidget.UpdateAll()
-				updateUI()
+				if !helpSelected {
+					selectedTable.ShowCursor = false
+					selectCurrency = true
+					selectedTable.ShowCursor = true
+					currencyWidget.UpdateAll()
+					updateUI()
+				}
 			}
-			if selectCurrency {
+			if helpSelected {
+				switch e.ID {
+				case "?":
+					updateUI()
+				case "<Escape>":
+					helpSelected = false
+					updateUI()
+				case "j", "<Down>":
+					help.List.ScrollDown()
+					ui.Render(help)
+				case "k", "<Up>":
+					help.List.ScrollUp()
+					ui.Render(help)
+				}
+			} else if selectCurrency {
 				switch e.ID {
 				case "j", "<Down>":
 					currencyWidget.ScrollDown()
