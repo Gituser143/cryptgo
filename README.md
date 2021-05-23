@@ -17,8 +17,9 @@ Using Docker
 --------
 
 ```bash
+git clone https://github.com/Gituser143/cryptgo
+cd cryptgo
 docker build -t cryptgo .
-
 docker run -it -v "$HOME:/root" cryptgo
 ```
 

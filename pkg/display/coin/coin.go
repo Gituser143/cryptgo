@@ -126,6 +126,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					}
 				}
 			case "q", "<C-c>":
+				ui.Clear()
 				return fmt.Errorf("coin UI Closed")
 
 			case "<Resize>":
@@ -357,8 +358,8 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				mCapStr := ""
 				mCap, err := strconv.ParseFloat(data.CoinAssetData.Data.MarketCapUsd, 64)
 				if err == nil {
-					mCapVals, units := utils.RoundValues(mCap, 0)
-					mCapStr = fmt.Sprintf("%.2f %s %s", mCapVals[0]/currencyVal, units, currency)
+					mCapVals, units := utils.RoundValues(mCap/currencyVal, 0)
+					mCapStr = fmt.Sprintf("%.2f %s %s", mCapVals[0], units, currency)
 				}
 
 				// Get Volume Weighted Average price
@@ -368,6 +369,14 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					vwapStr = fmt.Sprintf("%.2f %s", vwap/currencyVal, currency)
 				}
 
+				// Get 24 Hr Volume
+				vol, volErr := strconv.ParseFloat(data.CoinAssetData.Data.VolumeUsd24Hr, 64)
+				volStr := ""
+				if volErr == nil {
+					vals, units := utils.RoundValues(vol/currencyVal, 0)
+					volStr = fmt.Sprintf("%.2f %s %s", vals[0], units, currency)
+				}
+
 				// Aggregate data
 				rows := [][]string{
 					{"Symbol", data.CoinAssetData.Data.Symbol},
@@ -375,6 +384,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 					{"Market Cap", mCapStr},
 					{"VWAP 24Hr", vwapStr},
 					{"Explorer", data.CoinAssetData.Data.Explorer},
+					{"Volume Used 24 Hr", volStr},
 				}
 
 				// Update value label in history graph
@@ -386,8 +396,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				myPage.DetailsTable.Rows = rows
 
 				// Update Volume Guage
-				vol, err := strconv.ParseFloat(data.CoinAssetData.Data.VolumeUsd24Hr, 64)
-				if err == nil {
+				if volErr == nil {
 					if mCap > 0 {
 						percent := int((vol / mCap) * 100)
 						if percent <= 100 && percent >= 0 {

@@ -264,7 +264,7 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 
 	msg := make(map[string]string)
 
-	for {
+	return utils.LoopTick(ctx, time.Duration(100*time.Millisecond), func() error {
 		err := c.ReadJSON(&msg)
 		if err != nil {
 			return err
@@ -275,5 +275,7 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 			return ctx.Err()
 		case dataChannel <- msg[id]:
 		}
-	}
+
+		return nil
+	})
 }

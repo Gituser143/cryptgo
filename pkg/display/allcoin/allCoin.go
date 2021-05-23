@@ -329,7 +329,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					if id != "" {
 						// Create new errorgroup for coin page
 						eg, coinCtx := errgroup.WithContext(ctx)
-						coinDataChannel := make(chan api.CoinData)
+						coinDataChannel := make(chan api.CoinData, 10)
 						coinPriceChannel := make(chan string, 10)
 						intervalChannel := make(chan string, 10)
 
@@ -365,7 +365,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						// Serve Live price of coin
 						//   Not run with eg because websocket read blocks, thus
 						//   delaying wg.Wait() on ctx.Done()
-						go api.GetLivePrice(coinCtx, id, coinPriceChannel)
+
+						eg.Go(func() error {
+							err := api.GetLivePrice(coinCtx, id, coinPriceChannel)
+							return err
+						})
 
 						// Serve Visuals for ccoin
 						eg.Go(func() error {
