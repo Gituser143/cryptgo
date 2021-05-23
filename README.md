@@ -13,6 +13,15 @@ Using Go
 go get -u github.com/Gituser143/cryptgo
 ```
 
+Using Docker
+--------
+
+```bash
+docker build -t cryptgo .
+
+docker run -it -v "$HOME:/root" cryptgo
+```
+
 From source:
 ------------
 
