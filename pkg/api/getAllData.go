@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
+	gecko "github.com/superoo7/go-gecko/v3"
+	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
 
 // API Documentation can be found at https://docs.coincap.io/
@@ -65,6 +67,41 @@ type CoinPrice struct {
 type CoinHistory struct {
 	Data      []CoinPrice `json:"data"`
 	Timestamp uint        `json:"timestamp"`
+}
+
+func GetTopNCoinsFromCoinGecko(n int) ([]string, error) {
+	geckoClient := gecko.NewClient(nil)
+
+	vsCurrency := "usd"
+	ids := []string{}
+
+	if n > 1000 {
+		return nil, fmt.Errorf("page size limit is 1000")
+	}
+
+	perPage := n
+	page := 1
+
+	sparkline := false
+	priceChangePercentage := []string{}
+
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
+
+	if err != nil {
+		return nil, err
+	}
+
+	coinData := *coinDataPointer
+
+	topNIds := []string{}
+
+	for i := 0; i < n; i += 1 {
+		coinId := coinData[i].ID
+		topNIds = append(topNIds, coinId)
+	}
+
+	return topNIds, nil
 }
 
 // Get Assets contacts the 'api.coincap.io/v2/assets' endpoint to get asset
@@ -124,7 +161,13 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 // 'api.coincap.io/v2/assets/{id}/history'. This history data is served
 //  on the dataChannel
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
-	url := "https://api.coincap.io/v2/assets?limit=3"
+
+	topThreeIds, err := GetTopNCoinsFromCoinGecko(3)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("https://api.coincap.io/v2/assets?ids=%s,%s,%s", topThreeIds[0], topThreeIds[1], topThreeIds[2])
 	method := "GET"
 
 	// Create Request
