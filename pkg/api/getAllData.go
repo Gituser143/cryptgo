@@ -117,6 +117,24 @@ func GetTopNCoinIdsFromCoinGecko(n int) ([]string, error) {
 	return topNIds, nil
 }
 
+func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duration string) float64 {
+
+	m := map[string]*float64{
+		"1h":   coinData.PriceChangePercentage1hInCurrency,
+		"24h":  coinData.PriceChangePercentage24hInCurrency,
+		"7d":   coinData.PriceChangePercentage7dInCurrency,
+		"14d":  coinData.PriceChangePercentage14dInCurrency,
+		"30d":  coinData.PriceChangePercentage30dInCurrency,
+		"200d": coinData.PriceChangePercentage200dInCurrency,
+		"1y":   coinData.PriceChangePercentage1yInCurrency,
+	}
+
+	if percentageDuration, isPresent := m[duration]; isPresent && percentageDuration != nil {
+		return *percentageDuration
+	}
+	return coinData.PriceChangePercentage24h
+}
+
 // Get Assets contacts the 'https://api.coingecko.com/api/v3/coins/markets' endpoint
 // to get asset information of top 100 coins. It then serves this information through the
 // dataChannel

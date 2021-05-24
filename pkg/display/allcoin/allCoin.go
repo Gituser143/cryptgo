@@ -51,7 +51,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	currency := "USD $"
 	currencyVal := 1.0
 
-	// changePercentageDuration := "24h"
+	changePercentageDuration := "24h"
 	// selectChangePercentageDuration := false
 
 	selectCurrency := false
@@ -480,10 +480,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 					// Get change %
 					change := "NA"
+					percentageChange := api.GetPercentageChangeForDuration(val, changePercentageDuration)
 					if val.PriceChangePercentage24h < 0 {
-						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*val.PriceChangePercentage24h)
+						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*percentageChange)
 					} else {
-						change = fmt.Sprintf("%s %.2f", UP_ARROW, val.PriceChangePercentage24h)
+						change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
 					}
 
 					units := ""
