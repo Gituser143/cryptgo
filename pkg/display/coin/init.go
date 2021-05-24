@@ -83,15 +83,15 @@ func (page *CoinPage) InitCoin() {
 	page.IntervalTable.TitleStyle.Fg = ui.ColorClear
 	page.IntervalTable.Header = []string{"Interval"}
 	page.IntervalTable.Rows = [][]string{
-		{"1  min"},
-		{"5  min"},
-		{"15 min"},
-		{"30 min"},
-		{"1  hour"},
-		{"2  hour"},
-		{"6  hour"},
-		{"12 hour"},
 		{"1  day"},
+		{"12 hour"},
+		{"6  hour"},
+		{"2  hour"},
+		{"1  hour"},
+		{"30 min"},
+		{"15 min"},
+		{"5  min"},
+		{"1  min"},
 	}
 	page.IntervalTable.ColResizer = func() {
 		x := page.IntervalTable.Inner.Dx()
