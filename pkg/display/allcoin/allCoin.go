@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
@@ -49,6 +50,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Variables for currency
 	currency := "USD $"
 	currencyVal := 1.0
+
+	// changePercentageDuration := "24h"
+	// selectChangePercentageDuration := false
+
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
 
@@ -468,50 +473,43 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 
 				// Iterate over coin assets
-				for _, val := range data.Data {
+				for _, val := range data.AllCoinData {
 					// Get coin price
 					price := "NA"
-					p, err := strconv.ParseFloat(val.PriceUsd, 64)
-					if err == nil {
-						price = fmt.Sprintf("%.2f", p/currencyVal)
-					}
+					price = fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
 					// Get change %
 					change := "NA"
-					c, err := strconv.ParseFloat(val.ChangePercent24Hr, 64)
-					if err == nil {
-						if c < 0 {
-							change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*c)
-						} else {
-							change = fmt.Sprintf("%s %.2f", UP_ARROW, c)
-						}
+					if val.PriceChangePercentage24h < 0 {
+						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*val.PriceChangePercentage24h)
+					} else {
+						change = fmt.Sprintf("%s %.2f", UP_ARROW, val.PriceChangePercentage24h)
 					}
-
-					// Get supply and Max supply
-					s, err1 := strconv.ParseFloat(val.Supply, 64)
-					ms, err2 := strconv.ParseFloat(val.MaxSupply, 64)
 
 					units := ""
 					var supplyVals []float64
 					supplyData := ""
 
-					if err1 == nil && err2 == nil {
-						supplyVals, units = utils.RoundValues(s, ms)
+					if val.CirculatingSupply != 0.00 && val.TotalSupply != 0.00 {
+						supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 						supplyData = fmt.Sprintf("%.2f%s / %.2f%s", supplyVals[0], units, supplyVals[1], units)
 					} else {
-						if err1 != nil {
-							supplyVals, units = utils.RoundValues(s, ms)
+						if val.CirculatingSupply == 0.00 {
+							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 							supplyData = fmt.Sprintf("NA / %.2f%s", supplyVals[1], units)
 						} else {
-							supplyVals, units = utils.RoundValues(s, ms)
+							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 							supplyData = fmt.Sprintf("%.2f%s / NA", supplyVals[0], units)
 						}
 					}
 
+					rank := "NA"
+					rank = fmt.Sprintf("%d", val.MarketCapRank)
+
 					// Aggregate data
 					rows = append(rows, []string{
-						val.Rank,
-						val.Symbol,
+						rank,
+						strings.ToUpper(val.Symbol),
 						price,
 						change,
 						supplyData,
@@ -519,11 +517,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 					// Update new coin ids
 					if _, ok := coinIDs[val.Symbol]; !ok {
-						coinIDs[val.Symbol] = val.Id
+						coinIDs[val.Symbol] = val.ID
 					}
 
 					// Aggregate favourite data
-					if _, ok := favourites[val.Id]; ok {
+					if _, ok := favourites[val.ID]; ok {
 						favouritesData = append(favouritesData, []string{
 							val.Symbol,
 							price,

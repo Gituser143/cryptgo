@@ -55,6 +55,7 @@ type AssetData struct {
 	TimeStamp     uint    `json:"timestamp"`
 	TopCoinData   [][]float64
 	TopCoins      []string
+	AllCoinData   geckoTypes.CoinsMarket
 }
 
 // CoinPrice holds the price of a coin at a given time
@@ -69,7 +70,7 @@ type CoinHistory struct {
 	Timestamp uint        `json:"timestamp"`
 }
 
-func GetTopNCoinsFromCoinGecko(n int) ([]string, error) {
+func GetTopNCoinsFromCoinGecko(n int) (geckoTypes.CoinsMarket, error) {
 	geckoClient := gecko.NewClient(nil)
 
 	vsCurrency := "usd"
@@ -83,7 +84,9 @@ func GetTopNCoinsFromCoinGecko(n int) ([]string, error) {
 	page := 1
 
 	sparkline := false
-	priceChangePercentage := []string{}
+
+	pcp := geckoTypes.PriceChangePercentageObject
+	priceChangePercentage := []string{pcp.PCP1h, pcp.PCP24h, pcp.PCP7d, pcp.PCP14d, pcp.PCP30d, pcp.PCP200d, pcp.PCP1y}
 
 	order := geckoTypes.OrderTypeObject.MarketCapDesc
 	coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
@@ -93,6 +96,16 @@ func GetTopNCoinsFromCoinGecko(n int) ([]string, error) {
 	}
 
 	coinData := *coinDataPointer
+
+	return coinData, nil
+}
+
+func GetTopNCoinIdsFromCoinGecko(n int) ([]string, error) {
+
+	coinData, err := GetTopNCoinsFromCoinGecko(n)
+	if err != nil {
+		return nil, err
+	}
 
 	topNIds := []string{}
 
@@ -104,35 +117,17 @@ func GetTopNCoinsFromCoinGecko(n int) ([]string, error) {
 	return topNIds, nil
 }
 
-// Get Assets contacts the 'api.coincap.io/v2/assets' endpoint to get asset
-// information of top 100 coins. It then serves this information through the
+// Get Assets contacts the 'https://api.coingecko.com/api/v3/coins/markets' endpoint
+// to get asset information of top 100 coins. It then serves this information through the
 // dataChannel
 func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
-	url := "https://api.coincap.io/v2/assets"
-	method := "GET"
-
-	// Create Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return err
-	}
-
-	// Init Client
-	client := &http.Client{}
 
 	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
 		data := AssetData{}
-
 		if *sendData {
-			// Send Request
-			res, err := client.Do(req)
-			if err != nil {
-				return err
-			}
-			defer res.Body.Close()
 
-			// Read response
-			err = json.NewDecoder(res.Body).Decode(&data)
+			coinsData, err := GetTopNCoinsFromCoinGecko(100)
+			data.AllCoinData = coinsData
 			if err != nil {
 				return err
 			}
@@ -162,7 +157,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 //  on the dataChannel
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
-	topThreeIds, err := GetTopNCoinsFromCoinGecko(3)
+	topThreeIds, err := GetTopNCoinIdsFromCoinGecko(3)
 	if err != nil {
 		return err
 	}
