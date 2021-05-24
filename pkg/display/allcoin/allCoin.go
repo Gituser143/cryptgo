@@ -231,11 +231,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
 
-					selectedTable = myPage.CoinTable
 					selectCurrency = false
 
 				case "<Escape>":
-					selectedTable = myPage.CoinTable
 					selectCurrency = false
 				}
 				if selectCurrency {
@@ -329,9 +327,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					if id != "" {
 						// Create new errorgroup for coin page
 						eg, coinCtx := errgroup.WithContext(ctx)
-						coinDataChannel := make(chan api.CoinData, 10)
-						coinPriceChannel := make(chan string, 10)
-						intervalChannel := make(chan string, 10)
+						coinDataChannel := make(chan api.CoinData)
+						coinPriceChannel := make(chan string)
+						intervalChannel := make(chan string)
 
 						// Clear UI
 						ui.Clear()
@@ -363,9 +361,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						})
 
 						// Serve Live price of coin
-						//   Not run with eg because websocket read blocks, thus
-						//   delaying wg.Wait() on ctx.Done()
-
 						eg.Go(func() error {
 							err := api.GetLivePrice(coinCtx, id, coinPriceChannel)
 							return err
@@ -386,14 +381,16 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						if err := eg.Wait(); err != nil {
 							if err.Error() != "UI Closed" {
+								// Unpause
+								pause()
 								return err
 							}
 						}
 
-						// unpause data send and receive
-						pause()
-						updateUI()
 					}
+					// unpause data send and receive
+					pause()
+					updateUI()
 				}
 
 				if selectedTable == myPage.CoinTable {

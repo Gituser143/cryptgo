@@ -19,7 +19,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -39,7 +38,7 @@ var rootCmd = &cobra.Command{
 	Use:   "cryptgo",
 	Short: "A terminal application to watch crypto prices!",
 	Long:  `Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		// Context and errgroup used to manage routines
 		eg, ctx := errgroup.WithContext(context.Background())
@@ -65,9 +64,10 @@ var rootCmd = &cobra.Command{
 
 		if err := eg.Wait(); err != nil {
 			if err.Error() != "UI Closed" && err.Error() != "coin UI Closed" {
-				log.Fatal(err)
+				return err
 			}
 		}
+		return nil
 	},
 }
 

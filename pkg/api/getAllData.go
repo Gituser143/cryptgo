@@ -106,6 +106,12 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 				return ctx.Err()
 			case dataChannel <- data:
 			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
 		}
 
 		return nil
@@ -200,6 +206,12 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			case <-ctx.Done():
 				return ctx.Err()
 			case dataChannel <- data:
+			}
+		} else {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
 			}
 		}
 

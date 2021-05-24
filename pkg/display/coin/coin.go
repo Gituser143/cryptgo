@@ -301,13 +301,8 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 							val := row[0]
 							myPage.ValueGraph.Data["Value"] = []float64{}
 
-							// Started new routine to avoid deadlock
-							//   GetCoinHistory blocks on dataChannel <- data
-							//   Display Coin blocks on intervalChannel <- interval
-							go func() {
-								// Send new interval for GetCoinHistory
-								intervalChannel <- intervals[val]
-							}()
+							// Send new interval for GetCoinHistory
+							intervalChannel <- intervals[val]
 						}
 					}
 				}

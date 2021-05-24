@@ -152,6 +152,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		if err != nil {
 			return err
 		}
+
 		// Send Request
 		res, err := client.Do(req)
 		if err != nil {
