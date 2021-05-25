@@ -80,9 +80,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	myPage := NewAllCoinPage()
 	selectedTable := myPage.CoinTable
 
-	// Initialise favourites
+	// Initialise favourites and portfolio
+	portfolio := utils.GetPortfolio()
 	favourites := utils.GetFavourites()
-	defer utils.SaveFavourites(favourites)
+	defer utils.SaveMetadata(favourites, currency, portfolio)
 
 	// Initialise Help Menu
 	help := widgets.NewHelpMenu()
