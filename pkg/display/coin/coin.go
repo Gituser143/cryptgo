@@ -139,14 +139,12 @@ func DisplayCoin(
 
 		case e := <-uiEvents: // keyboard events
 			switch e.ID {
-			case "<Escape>":
+			case "<Escape>", "q", "<C-c>":
 				if !helpSelected && !selectCurrency && !portfolioSelected {
 					selectCurrency = false
+					ui.Clear()
 					return fmt.Errorf("UI Closed")
 				}
-			case "q", "<C-c>":
-				ui.Clear()
-				return fmt.Errorf("coin UI Closed")
 
 			case "<Resize>":
 				updateUI()
