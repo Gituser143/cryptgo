@@ -14,7 +14,7 @@ go get -u github.com/Gituser143/cryptgo
 ```
 
 Using Docker
---------
+------------
 
 ```bash
 git clone https://github.com/Gituser143/cryptgo
@@ -120,6 +120,17 @@ Key-bindings can be found by pressing `?`. This displays the help prompt.
 	-	`<Enter>`: Set Interval
 	-	`<c>`: Select Currency (from popular list)
 	-	`<C>`: Select Currency (from full list)
+
+Portfolio
+---------
+
+![portfolio](images/portfolio.png)
+
+-	Cryptgo allows you to track your holdings through a portfolio
+
+-	Coins can be added/modified/removed by pressing `e` on a coin in the main page. (Set Holding Amount as 0 to remove)
+
+-	Holdings can be modified either through the main page or through the portfolio itself.
 
 Extra
 -----

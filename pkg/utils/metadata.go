@@ -55,7 +55,11 @@ func GetFavourites() map[string]bool {
 		return map[string]bool{}
 	}
 
-	return metadata.Favourites
+	if len(metadata.Favourites) > 0 {
+		return metadata.Favourites
+	}
+
+	return map[string]bool{}
 }
 
 // GetPortfolio reads stored favourite coin details from ~/.cryptgo-data.json and returns a map.
@@ -86,7 +90,11 @@ func GetPortfolio() map[string]float64 {
 		return map[string]float64{}
 	}
 
-	return metadata.Portfolio
+	if len(metadata.Portfolio) > 0 {
+		return metadata.Portfolio
+	}
+
+	return map[string]float64{}
 }
 
 // SaveMetadata exports favourites, currency and portfolio to disk. Data is saved on ~/.cryptgo-data.json
