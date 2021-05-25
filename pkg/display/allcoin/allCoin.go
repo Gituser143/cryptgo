@@ -216,7 +216,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				case "k", "<Up>":
 					portfolioTable.ScrollUp()
 					ui.Render(portfolioTable)
-				case "e":
+				case "e": // Add/Edit coin in portfolio
 					id := ""
 					symbol := ""
 
@@ -318,7 +318,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				case "G", "<End>":
 					selectedTable.ScrollBottom()
 
-				case "e":
+				case "e": // Add/Edit coin in portfolio
 					id := ""
 					symbol := ""
 
