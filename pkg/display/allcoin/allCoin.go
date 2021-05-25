@@ -66,7 +66,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		"Rank",
 		"Symbol",
 		fmt.Sprintf("Price (%s)", currency),
-		"Change %",
+		fmt.Sprintf("Change %%(%s)", changePercentageDuration),
 		"Supply / MaxSupply",
 	}
 
@@ -287,6 +287,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						row := changePercentageDurationWidget.Rows[changePercentageDurationWidget.SelectedRow]
 
 						changePercentageDuration = changePercentDurationPackage.DurationMap[row[0]]
+
+						coinHeader[3] = fmt.Sprintf("Change %%(%s)", changePercentageDuration)
 					}
 
 					selectChangePercentageDuration = false
@@ -523,6 +525,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 				// Update currency headers
 				myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
+				myPage.CoinTable.Header[3] = fmt.Sprintf("Change %%(%s)", changePercentageDuration)
 				myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 
 				// Iterate over coin assets
