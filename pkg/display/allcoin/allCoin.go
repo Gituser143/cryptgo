@@ -265,6 +265,38 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				case "G", "<End>":
 					selectedTable.ScrollBottom()
 
+				case "e":
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					} else {
+						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
+							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
+							symbol = row[0]
+						}
+					}
+					id = coinIDs[symbol]
+
+					inputStr := widgets.DrawEdit(uiEvents, symbol)
+
+					amt, err := strconv.ParseFloat(inputStr, 64)
+					if err == nil {
+						if amt > 0 {
+							portfolio[id] = amt
+						} else {
+							delete(portfolio, id)
+						}
+					}
+
+					ui.Clear()
+					updateUI()
+
 				case "s": // Add coin to favourites
 					id := ""
 					symbol := ""
