@@ -24,6 +24,7 @@ import (
 
 	"github.com/Gituser143/cryptgo/pkg/api"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
+	"github.com/Gituser143/cryptgo/pkg/display/portfolio"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
@@ -35,7 +36,15 @@ const (
 )
 
 // DisplayCoin displays the per coin values and details along with a favourites table. It uses the same uiEvents channel as the root page
-func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, dataChannel chan api.CoinData, priceChannel chan string, uiEvents <-chan ui.Event) error {
+func DisplayCoin(
+	ctx context.Context,
+	id string,
+	coinIDs map[string]string,
+	intervalChannel chan string,
+	dataChannel chan api.CoinData,
+	priceChannel chan string,
+	uiEvents <-chan ui.Event) error {
+
 	defer ui.Clear()
 
 	// Init Coin page
@@ -60,6 +69,15 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		"Symbol",
 		fmt.Sprintf("Price (%s)", currency),
 	}
+
+	// Initialise portfolio
+	favourites := utils.GetFavourites()
+	portfolioMap := utils.GetPortfolio()
+	defer utils.SaveMetadata(favourites, currency, portfolioMap)
+
+	// Initiliase Portfolio Table
+	portfolioTable := portfolio.NewPortfolioPage()
+	portfolioSelected := false
 
 	// intervals holds interval mappings to be used in the call to the history API
 	intervals := map[string]string{
@@ -96,6 +114,9 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		if helpSelected {
 			help.Resize(w, h)
 			ui.Render(help)
+		} else if portfolioSelected {
+			portfolioTable.Resize(w, h)
+			ui.Render(portfolioTable)
 		} else if selectCurrency {
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
@@ -119,11 +140,9 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 		case e := <-uiEvents: // keyboard events
 			switch e.ID {
 			case "<Escape>":
-				if !helpSelected {
-					if !selectCurrency {
-						selectCurrency = false
-						return fmt.Errorf("UI Closed")
-					}
+				if !helpSelected && !selectCurrency && !portfolioSelected {
+					selectCurrency = false
+					return fmt.Errorf("UI Closed")
 				}
 			case "q", "<C-c>":
 				ui.Clear()
@@ -137,29 +156,36 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				updateUI()
 
 			case "c":
-				if !helpSelected {
+				if !helpSelected && !portfolioSelected {
 					selectCurrency = true
 					currencyWidget.UpdateRows()
 					updateUI()
 				}
 
 			case "C":
-				if !helpSelected {
+				if !helpSelected && !portfolioSelected {
 					selectCurrency = true
 					currencyWidget.UpdateAll()
 				}
 				updateUI()
 
 			case "f":
-				if !helpSelected {
+				if !helpSelected && !portfolioSelected && !selectCurrency {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.FavouritesTable
 				}
 
 			case "F":
-				if !helpSelected {
+				if !helpSelected && !portfolioSelected && !selectCurrency {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.IntervalTable
+				}
+
+			case "P":
+				if !helpSelected && !selectCurrency {
+					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
+					portfolioSelected = !portfolioSelected
+					updateUI()
 				}
 
 			}
@@ -176,6 +202,44 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 				case "k", "<Up>":
 					help.List.ScrollUp()
 					ui.Render(help)
+				}
+			} else if portfolioSelected {
+				switch e.ID {
+				case "<Escape>":
+					portfolioSelected = false
+					updateUI()
+				case "j", "<Down>":
+					portfolioTable.ScrollDown()
+					ui.Render(portfolioTable)
+				case "k", "<Up>":
+					portfolioTable.ScrollUp()
+					ui.Render(portfolioTable)
+				case "e":
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if portfolioTable.SelectedRow < len(portfolioTable.Rows) {
+						row := portfolioTable.Rows[portfolioTable.SelectedRow]
+						symbol = row[1]
+					}
+
+					id = coinIDs[symbol]
+
+					if id != "" {
+						inputStr := widgets.DrawEdit(uiEvents, symbol)
+						amt, err := strconv.ParseFloat(inputStr, 64)
+
+						if err == nil {
+							if amt > 0 {
+								portfolioMap[id] = amt
+							} else {
+								delete(portfolioMap, id)
+							}
+						}
+					}
+
+					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
 				}
 			} else if selectCurrency {
 				switch e.ID {
@@ -319,7 +383,7 @@ func DisplayCoin(ctx context.Context, id string, intervalChannel chan string, da
 			// Update live price
 			p, _ := strconv.ParseFloat(data, 64)
 			myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
-			if !selectCurrency && !helpSelected {
+			if !selectCurrency && !helpSelected && !portfolioSelected {
 				ui.Render(myPage.PriceBox)
 			}
 

@@ -455,11 +455,12 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							return err
 						})
 
-						// Serve Visuals for ccoin
+						// Serve Visuals for coin
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
 								coinCtx,
 								id,
+								coinIDs,
 								intervalChannel,
 								coinDataChannel,
 								coinPriceChannel,
