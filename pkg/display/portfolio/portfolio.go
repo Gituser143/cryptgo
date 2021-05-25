@@ -42,25 +42,26 @@ func NewPortfolioPage() *PortfolioTable {
 	}
 
 	p.Table.Title = " Portfolio "
-	p.Table.Header = []string{"Coin", "Symbol", "Amount", "Value"}
+	p.Table.Header = []string{"Coin", "Symbol", "Price", "Holding", "Balance"}
 	p.Table.Rows = rows
 	p.Table.CursorColor = ui.ColorCyan
 	p.Table.ShowCursor = true
-	p.Table.ColWidths = []int{5, 5, 5, 5}
+	p.Table.ColWidths = []int{5, 5, 5, 5, 5}
 	p.Table.ColResizer = func() {
 		x := p.Table.Inner.Dx()
 		p.Table.ColWidths = []int{
-			x / 4,
-			x / 4,
-			x / 4,
-			x / 4,
+			x / 5,
+			x / 5,
+			x / 5,
+			x / 5,
+			x / 5,
 		}
 	}
 	return p
 }
 
 func (p *PortfolioTable) Resize(termWidth, termHeight int) {
-	textWidth := 70
+	textWidth := 100
 
 	textHeight := len(p.Table.Rows) + 3
 	x := (termWidth - textWidth) / 2
@@ -128,6 +129,7 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 			row := []string{
 				data.Data.Name,
 				data.Data.Symbol,
+				fmt.Sprintf("%.2f", p),
 				fmt.Sprintf("%.6f", amt),
 				fmt.Sprintf("%.4f", p*amt/currencyVal),
 			}
@@ -142,8 +144,9 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 
 	wg.Wait()
 
-	p.Header[3] = fmt.Sprintf("Value (%s)", currency)
+	p.Header[2] = fmt.Sprintf("Price (%s)", currency)
+	p.Header[4] = fmt.Sprintf("Balance (%s)", currency)
 	p.Rows = rows
 	p.Title = fmt.Sprintf(" Portfolio: %.4f %s ", sum, currency)
-	utils.SortData(p.Rows, 3, false, "PORTFOLIO")
+	utils.SortData(p.Rows, 4, false, "PORTFOLIO")
 }
