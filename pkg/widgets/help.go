@@ -47,6 +47,7 @@ var allKeybindings = []string{
 	"  - <Enter>: View Coin Information",
 	"  - c: Select Currency (from popular list)",
 	"  - C: Select Currency (from full list)",
+	"  - %: Select Duration for Percentage Change",
 	"",
 	"[To close this prompt: <Esc>](fg:white)",
 }

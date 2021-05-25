@@ -168,7 +168,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 
 			case "c":
-				if !helpSelected {
+				if !helpSelected && !selectChangePercentageDuration {
 					selectedTable.ShowCursor = false
 					selectChangePercentageDuration = false
 					selectCurrency = true
@@ -178,7 +178,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 
 			case "C":
-				if !helpSelected {
+				if !helpSelected && !selectChangePercentageDuration {
 					selectedTable.ShowCursor = false
 					selectChangePercentageDuration = false
 					selectCurrency = true
@@ -187,7 +187,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					updateUI()
 				}
 			case "%":
-				if !helpSelected {
+				if !helpSelected && !selectCurrency {
 					selectedTable.ShowCursor = false
 					selectChangePercentageDuration = true
 					selectCurrency = false
@@ -283,15 +283,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					changePercentageDurationWidget.ScrollBottom()
 				case "<Enter>":
 
-					// Update Currency
 					if changePercentageDurationWidget.SelectedRow < len(changePercentageDurationWidget.Rows) {
 						row := changePercentageDurationWidget.Rows[changePercentageDurationWidget.SelectedRow]
 
 						changePercentageDuration = changePercentDurationPackage.DurationMap[row[0]]
-
-						// Update currency fields
-						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
-						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
 
 					selectChangePercentageDuration = false
@@ -533,8 +528,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				// Iterate over coin assets
 				for _, val := range data.AllCoinData {
 					// Get coin price
-					price := "NA"
-					price = fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
+					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
 					// Get change %
 					change := "NA"
@@ -562,8 +556,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						}
 					}
 
-					rank := "NA"
-					rank = fmt.Sprintf("%d", val.MarketCapRank)
+					rank := fmt.Sprintf("%d", val.MarketCapRank)
 
 					// Aggregate data
 					rows = append(rows, []string{
