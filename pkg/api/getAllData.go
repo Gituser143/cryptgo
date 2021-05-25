@@ -274,3 +274,39 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 		return nil
 	})
 }
+
+func GetTopNCoinSymbolToIDMap(n int) (map[string]string, error) {
+
+	coinToSymbolMap := map[string]string{}
+
+	url := fmt.Sprintf("https://api.coincap.io/v2/assets?limit=%d", n)
+	method := "GET"
+
+	// Create Request
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Init Client
+	client := &http.Client{}
+	data := AssetData{}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	// Read response
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, coin := range data.Data {
+		coinToSymbolMap[coin.Symbol] = coin.Id
+	}
+
+	return coinToSymbolMap, nil
+}

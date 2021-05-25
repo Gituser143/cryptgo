@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
-	changeDuration "github.com/Gituser143/cryptgo/pkg/display/changePercentageDuration"
+	changePercentDurationPackage "github.com/Gituser143/cryptgo/pkg/display/changePercentageDuration"
 	"github.com/Gituser143/cryptgo/pkg/display/coin"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/utils"
@@ -54,7 +54,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 	changePercentageDuration := "24h"
 	selectChangePercentageDuration := false
-	changeDurationWidget := changeDuration.NewChangePercentageDurationPage()
+	changePercentageDurationWidget := changePercentDurationPackage.NewChangePercentageDurationPage()
 
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
@@ -81,7 +81,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	previousKey := ""
 
 	// coinIDs tracks symbol: id
-	coinIDs := make(map[string]string)
+	coinIDs, _ := api.GetTopNCoinSymbolToIDMap(200)
 
 	// Initalise page and set selected table
 	myPage := NewAllCoinPage()
@@ -118,8 +118,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
 		} else if selectChangePercentageDuration {
-			changeDurationWidget.Resize(w, h)
-			ui.Render(changeDurationWidget)
+			changePercentageDurationWidget.Resize(w, h)
+			ui.Render(changePercentageDurationWidget)
 		} else {
 			ui.Render(myPage.Grid)
 		}
@@ -262,32 +262,32 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			} else if selectChangePercentageDuration {
 				switch e.ID {
 				case "j", "<Down>":
-					changeDurationWidget.ScrollDown()
+					changePercentageDurationWidget.ScrollDown()
 				case "k", "<Up>":
-					changeDurationWidget.ScrollUp()
+					changePercentageDurationWidget.ScrollUp()
 				case "<C-d>":
-					changeDurationWidget.ScrollHalfPageDown()
+					changePercentageDurationWidget.ScrollHalfPageDown()
 				case "<C-u>":
-					changeDurationWidget.ScrollHalfPageUp()
+					changePercentageDurationWidget.ScrollHalfPageUp()
 				case "<C-f>":
-					changeDurationWidget.ScrollPageDown()
+					changePercentageDurationWidget.ScrollPageDown()
 				case "<C-b>":
-					changeDurationWidget.ScrollPageUp()
+					changePercentageDurationWidget.ScrollPageUp()
 				case "g":
 					if previousKey == "g" {
-						changeDurationWidget.ScrollTop()
+						changePercentageDurationWidget.ScrollTop()
 					}
 				case "<Home>":
-					changeDurationWidget.ScrollTop()
+					changePercentageDurationWidget.ScrollTop()
 				case "G", "<End>":
-					changeDurationWidget.ScrollBottom()
+					changePercentageDurationWidget.ScrollBottom()
 				case "<Enter>":
 
 					// Update Currency
-					if changeDurationWidget.SelectedRow < len(changeDurationWidget.Rows) {
-						row := changeDurationWidget.Rows[changeDurationWidget.SelectedRow]
+					if changePercentageDurationWidget.SelectedRow < len(changePercentageDurationWidget.Rows) {
+						row := changePercentageDurationWidget.Rows[changePercentageDurationWidget.SelectedRow]
 
-						changePercentageDuration = changeDuration.DurationMap[row[0]]
+						changePercentageDuration = changePercentDurationPackage.DurationMap[row[0]]
 
 						// Update currency fields
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
@@ -300,7 +300,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectChangePercentageDuration = false
 				}
 				if selectChangePercentageDuration {
-					ui.Render(changeDurationWidget)
+					ui.Render(changePercentageDurationWidget)
 				}
 			} else if selectedTable != nil {
 				selectedTable.ShowCursor = true
@@ -573,11 +573,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						change,
 						supplyData,
 					})
-
-					// Update new coin ids
-					if _, ok := coinIDs[strings.ToUpper(val.Symbol)]; !ok {
-						coinIDs[strings.ToUpper(val.Symbol)] = val.ID
-					}
 
 					// Aggregate favourite data
 					if _, ok := favourites[val.ID]; ok {
