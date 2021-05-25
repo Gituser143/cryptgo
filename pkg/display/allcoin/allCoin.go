@@ -25,6 +25,7 @@ import (
 	"github.com/Gituser143/cryptgo/pkg/api"
 	"github.com/Gituser143/cryptgo/pkg/display/coin"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
+	"github.com/Gituser143/cryptgo/pkg/display/portfolio"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
@@ -80,14 +81,19 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	myPage := NewAllCoinPage()
 	selectedTable := myPage.CoinTable
 
-	// Initialise favourites
+	// Initialise favourites and portfolio
+	portfolioMap := utils.GetPortfolio()
 	favourites := utils.GetFavourites()
-	defer utils.SaveFavourites(favourites)
+	defer utils.SaveMetadata(favourites, currency, portfolioMap)
 
 	// Initialise Help Menu
 	help := widgets.NewHelpMenu()
 	help.SelectHelpMenu("ALL")
 	helpSelected := false
+
+	// Initiliase Portfolio Table
+	portfolioTable := portfolio.NewPortfolioPage()
+	portfolioSelected := false
 
 	// Pause function to pause sending and receiving of data
 	pause := func() {
@@ -107,6 +113,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		if helpSelected {
 			help.Resize(w, h)
 			ui.Render(help)
+		} else if portfolioSelected {
+			portfolioTable.Resize(w, h)
+			ui.Render(portfolioTable)
 		} else if selectCurrency {
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
@@ -146,19 +155,19 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				updateUI()
 
 			case "f":
-				if !helpSelected {
+				if !helpSelected && !selectCurrency && !portfolioSelected {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.FavouritesTable
 				}
 
 			case "F":
-				if !helpSelected {
+				if !helpSelected && !selectCurrency && !portfolioSelected {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.CoinTable
 				}
 
 			case "c":
-				if !helpSelected {
+				if !helpSelected && !portfolioSelected {
 					selectedTable.ShowCursor = false
 					selectCurrency = true
 					selectedTable.ShowCursor = true
@@ -167,11 +176,18 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 
 			case "C":
-				if !helpSelected {
+				if !helpSelected && !portfolioSelected {
 					selectedTable.ShowCursor = false
 					selectCurrency = true
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateAll()
+					updateUI()
+				}
+
+			case "P":
+				if !helpSelected && !selectCurrency {
+					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
+					portfolioSelected = !portfolioSelected
 					updateUI()
 				}
 			}
@@ -188,6 +204,44 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				case "k", "<Up>":
 					help.List.ScrollUp()
 					ui.Render(help)
+				}
+			} else if portfolioSelected {
+				switch e.ID {
+				case "<Escape>":
+					portfolioSelected = false
+					updateUI()
+				case "j", "<Down>":
+					portfolioTable.ScrollDown()
+					ui.Render(portfolioTable)
+				case "k", "<Up>":
+					portfolioTable.ScrollUp()
+					ui.Render(portfolioTable)
+				case "e": // Add/Edit coin in portfolio
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if portfolioTable.SelectedRow < len(portfolioTable.Rows) {
+						row := portfolioTable.Rows[portfolioTable.SelectedRow]
+						symbol = row[1]
+					}
+
+					id = coinIDs[symbol]
+
+					if id != "" {
+						inputStr := widgets.DrawEdit(uiEvents, symbol)
+						amt, err := strconv.ParseFloat(inputStr, 64)
+
+						if err == nil {
+							if amt > 0 {
+								portfolioMap[id] = amt
+							} else {
+								delete(portfolioMap, id)
+							}
+						}
+					}
+
+					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
 				}
 			} else if selectCurrency {
 				switch e.ID {
@@ -263,6 +317,41 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectedTable.ScrollTop()
 				case "G", "<End>":
 					selectedTable.ScrollBottom()
+
+				case "e": // Add/Edit coin in portfolio
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					} else {
+						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
+							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
+							symbol = row[0]
+						}
+					}
+					id = coinIDs[symbol]
+
+					if id != "" {
+
+						inputStr := widgets.DrawEdit(uiEvents, symbol)
+
+						amt, err := strconv.ParseFloat(inputStr, 64)
+						if err == nil {
+							if amt > 0 {
+								portfolioMap[id] = amt
+							} else {
+								delete(portfolioMap, id)
+							}
+						}
+					}
+
+					ui.Clear()
+					updateUI()
 
 				case "s": // Add coin to favourites
 					id := ""
@@ -366,11 +455,12 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							return err
 						})
 
-						// Serve Visuals for ccoin
+						// Serve Visuals for coin
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
 								coinCtx,
 								id,
+								coinIDs,
 								intervalChannel,
 								coinDataChannel,
 								coinPriceChannel,

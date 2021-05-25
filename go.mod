@@ -10,6 +10,7 @@ require (
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mattn/go-runewidth v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v1.1.3
