@@ -127,9 +127,9 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 
 			row := []string{
 				data.Data.Name,
-				coin,
-				fmt.Sprintf("%.2f", amt),
-				fmt.Sprintf("%.2f", p/currencyVal),
+				data.Data.Symbol,
+				fmt.Sprintf("%.6f", amt),
+				fmt.Sprintf("%.4f", p*amt/currencyVal),
 			}
 
 			m.Lock()
