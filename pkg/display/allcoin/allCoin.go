@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
+	changePercentDurationPackage "github.com/Gituser143/cryptgo/pkg/display/changePercentageDuration"
 	"github.com/Gituser143/cryptgo/pkg/display/coin"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/utils"
@@ -49,6 +51,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Variables for currency
 	currency := "USD $"
 	currencyVal := 1.0
+
+	changePercentageDuration := "24h"
+	selectChangePercentageDuration := false
+	changePercentageDurationWidget := changePercentDurationPackage.NewChangePercentageDurationPage()
+
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
 
@@ -59,7 +66,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		"Rank",
 		"Symbol",
 		fmt.Sprintf("Price (%s)", currency),
-		"Change %",
+		fmt.Sprintf("Change %%(%s)", changePercentageDuration),
 		"Supply / MaxSupply",
 	}
 
@@ -74,7 +81,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	previousKey := ""
 
 	// coinIDs tracks symbol: id
-	coinIDs := make(map[string]string)
+	coinIDs, _ := api.GetTopNCoinSymbolToIDMap(200)
 
 	// Initalise page and set selected table
 	myPage := NewAllCoinPage()
@@ -110,6 +117,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		} else if selectCurrency {
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
+		} else if selectChangePercentageDuration {
+			changePercentageDurationWidget.Resize(w, h)
+			ui.Render(changePercentageDurationWidget)
 		} else {
 			ui.Render(myPage.Grid)
 		}
@@ -158,8 +168,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 
 			case "c":
-				if !helpSelected {
+				if !helpSelected && !selectChangePercentageDuration {
 					selectedTable.ShowCursor = false
+					selectChangePercentageDuration = false
 					selectCurrency = true
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows()
@@ -167,11 +178,20 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 
 			case "C":
-				if !helpSelected {
+				if !helpSelected && !selectChangePercentageDuration {
 					selectedTable.ShowCursor = false
+					selectChangePercentageDuration = false
 					selectCurrency = true
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateAll()
+					updateUI()
+				}
+			case "%":
+				if !helpSelected && !selectCurrency {
+					selectedTable.ShowCursor = false
+					selectChangePercentageDuration = true
+					selectCurrency = false
+					selectedTable.ShowCursor = true
 					updateUI()
 				}
 			}
@@ -238,6 +258,46 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 				if selectCurrency {
 					ui.Render(currencyWidget)
+				}
+			} else if selectChangePercentageDuration {
+				switch e.ID {
+				case "j", "<Down>":
+					changePercentageDurationWidget.ScrollDown()
+				case "k", "<Up>":
+					changePercentageDurationWidget.ScrollUp()
+				case "<C-d>":
+					changePercentageDurationWidget.ScrollHalfPageDown()
+				case "<C-u>":
+					changePercentageDurationWidget.ScrollHalfPageUp()
+				case "<C-f>":
+					changePercentageDurationWidget.ScrollPageDown()
+				case "<C-b>":
+					changePercentageDurationWidget.ScrollPageUp()
+				case "g":
+					if previousKey == "g" {
+						changePercentageDurationWidget.ScrollTop()
+					}
+				case "<Home>":
+					changePercentageDurationWidget.ScrollTop()
+				case "G", "<End>":
+					changePercentageDurationWidget.ScrollBottom()
+				case "<Enter>":
+
+					if changePercentageDurationWidget.SelectedRow < len(changePercentageDurationWidget.Rows) {
+						row := changePercentageDurationWidget.Rows[changePercentageDurationWidget.SelectedRow]
+
+						changePercentageDuration = changePercentDurationPackage.DurationMap[row[0]]
+
+						coinHeader[3] = fmt.Sprintf("Change %%(%s)", changePercentageDuration)
+					}
+
+					selectChangePercentageDuration = false
+
+				case "<Escape>":
+					selectChangePercentageDuration = false
+				}
+				if selectChangePercentageDuration {
+					ui.Render(changePercentageDurationWidget)
 				}
 			} else if selectedTable != nil {
 				selectedTable.ShowCursor = true
@@ -465,67 +525,55 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 				// Update currency headers
 				myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
+				myPage.CoinTable.Header[3] = fmt.Sprintf("Change %%(%s)", changePercentageDuration)
 				myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 
 				// Iterate over coin assets
-				for _, val := range data.Data {
+				for _, val := range data.AllCoinData {
 					// Get coin price
-					price := "NA"
-					p, err := strconv.ParseFloat(val.PriceUsd, 64)
-					if err == nil {
-						price = fmt.Sprintf("%.2f", p/currencyVal)
-					}
+					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
 					// Get change %
 					change := "NA"
-					c, err := strconv.ParseFloat(val.ChangePercent24Hr, 64)
-					if err == nil {
-						if c < 0 {
-							change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*c)
-						} else {
-							change = fmt.Sprintf("%s %.2f", UP_ARROW, c)
-						}
+					percentageChange := api.GetPercentageChangeForDuration(val, changePercentageDuration)
+					if percentageChange < 0 {
+						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*percentageChange)
+					} else {
+						change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
 					}
-
-					// Get supply and Max supply
-					s, err1 := strconv.ParseFloat(val.Supply, 64)
-					ms, err2 := strconv.ParseFloat(val.MaxSupply, 64)
 
 					units := ""
 					var supplyVals []float64
 					supplyData := ""
 
-					if err1 == nil && err2 == nil {
-						supplyVals, units = utils.RoundValues(s, ms)
+					if val.CirculatingSupply != 0.00 && val.TotalSupply != 0.00 {
+						supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 						supplyData = fmt.Sprintf("%.2f%s / %.2f%s", supplyVals[0], units, supplyVals[1], units)
 					} else {
-						if err1 != nil {
-							supplyVals, units = utils.RoundValues(s, ms)
+						if val.CirculatingSupply == 0.00 {
+							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 							supplyData = fmt.Sprintf("NA / %.2f%s", supplyVals[1], units)
 						} else {
-							supplyVals, units = utils.RoundValues(s, ms)
+							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 							supplyData = fmt.Sprintf("%.2f%s / NA", supplyVals[0], units)
 						}
 					}
 
+					rank := fmt.Sprintf("%d", val.MarketCapRank)
+
 					// Aggregate data
 					rows = append(rows, []string{
-						val.Rank,
-						val.Symbol,
+						rank,
+						strings.ToUpper(val.Symbol),
 						price,
 						change,
 						supplyData,
 					})
 
-					// Update new coin ids
-					if _, ok := coinIDs[val.Symbol]; !ok {
-						coinIDs[val.Symbol] = val.Id
-					}
-
 					// Aggregate favourite data
-					if _, ok := favourites[val.Id]; ok {
+					if _, ok := favourites[val.ID]; ok {
 						favouritesData = append(favouritesData, []string{
-							val.Symbol,
+							strings.ToUpper(val.Symbol),
 							price,
 						})
 					}

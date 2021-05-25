@@ -64,7 +64,7 @@ func RoundValues(num1, num2 float64) ([]float64, string) {
 		nums = append(nums, roundOffNearestTen(num2, G))
 		units = "B"
 
-	case n < Q:
+	case n >= Q:
 		nums = append(nums, roundOffNearestTen(num1, T))
 		nums = append(nums, roundOffNearestTen(num2, T))
 		units = "T"

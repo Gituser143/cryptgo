@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
+	gecko "github.com/superoo7/go-gecko/v3"
+	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
 
 // API Documentation can be found at https://docs.coincap.io/
@@ -53,6 +55,7 @@ type AssetData struct {
 	TimeStamp     uint    `json:"timestamp"`
 	TopCoinData   [][]float64
 	TopCoins      []string
+	AllCoinData   geckoTypes.CoinsMarket
 }
 
 // CoinPrice holds the price of a coin at a given time
@@ -67,35 +70,82 @@ type CoinHistory struct {
 	Timestamp uint        `json:"timestamp"`
 }
 
-// Get Assets contacts the 'api.coincap.io/v2/assets' endpoint to get asset
-// information of top 100 coins. It then serves this information through the
-// dataChannel
-func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
-	url := "https://api.coincap.io/v2/assets"
-	method := "GET"
+func GetTopNCoinsFromCoinGecko(n int) (geckoTypes.CoinsMarket, error) {
+	geckoClient := gecko.NewClient(nil)
 
-	// Create Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return err
+	vsCurrency := "usd"
+	ids := []string{}
+
+	if n > 1000 {
+		return nil, fmt.Errorf("page size limit is 1000")
 	}
 
-	// Init Client
-	client := &http.Client{}
+	perPage := n
+	page := 1
+
+	sparkline := false
+
+	pcp := geckoTypes.PriceChangePercentageObject
+	priceChangePercentage := []string{pcp.PCP1h, pcp.PCP24h, pcp.PCP7d, pcp.PCP14d, pcp.PCP30d, pcp.PCP200d, pcp.PCP1y}
+
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
+
+	if err != nil {
+		return nil, err
+	}
+
+	coinData := *coinDataPointer
+
+	return coinData, nil
+}
+
+func GetTopNCoinIdsFromCoinGecko(n int) ([]string, error) {
+
+	coinData, err := GetTopNCoinsFromCoinGecko(n)
+	if err != nil {
+		return nil, err
+	}
+
+	topNIds := []string{}
+
+	for i := 0; i < n; i += 1 {
+		coinId := coinData[i].ID
+		topNIds = append(topNIds, coinId)
+	}
+
+	return topNIds, nil
+}
+
+func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duration string) float64 {
+
+	m := map[string]*float64{
+		"1h":   coinData.PriceChangePercentage1hInCurrency,
+		"24h":  coinData.PriceChangePercentage24hInCurrency,
+		"7d":   coinData.PriceChangePercentage7dInCurrency,
+		"14d":  coinData.PriceChangePercentage14dInCurrency,
+		"30d":  coinData.PriceChangePercentage30dInCurrency,
+		"200d": coinData.PriceChangePercentage200dInCurrency,
+		"1y":   coinData.PriceChangePercentage1yInCurrency,
+	}
+
+	if percentageDuration, isPresent := m[duration]; isPresent && percentageDuration != nil {
+		return *percentageDuration
+	}
+	return coinData.PriceChangePercentage24h
+}
+
+// Get Assets contacts the 'https://api.coingecko.com/api/v3/coins/markets' endpoint
+// to get asset information of top 100 coins. It then serves this information through the
+// dataChannel
+func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
 	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
 		data := AssetData{}
-
 		if *sendData {
-			// Send Request
-			res, err := client.Do(req)
-			if err != nil {
-				return err
-			}
-			defer res.Body.Close()
 
-			// Read response
-			err = json.NewDecoder(res.Body).Decode(&data)
+			coinsData, err := GetTopNCoinsFromCoinGecko(100)
+			data.AllCoinData = coinsData
 			if err != nil {
 				return err
 			}
@@ -124,7 +174,13 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 // 'api.coincap.io/v2/assets/{id}/history'. This history data is served
 //  on the dataChannel
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
-	url := "https://api.coincap.io/v2/assets?limit=3"
+
+	topThreeIds, err := GetTopNCoinIdsFromCoinGecko(3)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("https://api.coincap.io/v2/assets?ids=%s,%s,%s", topThreeIds[0], topThreeIds[1], topThreeIds[2])
 	method := "GET"
 
 	// Create Request
@@ -217,4 +273,40 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 
 		return nil
 	})
+}
+
+func GetTopNCoinSymbolToIDMap(n int) (map[string]string, error) {
+
+	coinToSymbolMap := map[string]string{}
+
+	url := fmt.Sprintf("https://api.coincap.io/v2/assets?limit=%d", n)
+	method := "GET"
+
+	// Create Request
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Init Client
+	client := &http.Client{}
+	data := AssetData{}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	// Read response
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, coin := range data.Data {
+		coinToSymbolMap[coin.Symbol] = coin.Id
+	}
+
+	return coinToSymbolMap, nil
 }
