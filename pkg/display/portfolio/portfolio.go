@@ -92,7 +92,7 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 	method := "GET"
 
 	rows := [][]string{}
-
+	sum := 0.0
 	for coin, amt := range portfolio {
 		wg.Add(1)
 		go func(coin string, amt float64, wg *sync.WaitGroup, m *sync.Mutex) {
@@ -133,6 +133,7 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 			}
 
 			m.Lock()
+			sum += p * amt / currencyVal
 			rows = append(rows, row)
 			m.Unlock()
 
@@ -143,6 +144,6 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 
 	p.Header[3] = fmt.Sprintf("Value (%s)", currency)
 	p.Rows = rows
-
+	p.Title = fmt.Sprintf(" Portfolio: %.4f %s ", sum, currency)
 	utils.SortData(p.Rows, 3, false, "PORTFOLIO")
 }
