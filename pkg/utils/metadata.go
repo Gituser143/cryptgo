@@ -34,19 +34,19 @@ func GetFavourites() map[string]bool {
 	// Get home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return metadata.Favourites
+		return map[string]bool{}
 	}
 
 	// Check if metadata file exists
 	configPath := homeDir + "/.cryptgo-data.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return metadata.Favourites
+		return map[string]bool{}
 	}
 
 	// Open file
 	configFile, err := os.Open(configPath)
 	if err != nil {
-		return metadata.Favourites
+		return map[string]bool{}
 	}
 
 	// Read content
@@ -69,19 +69,19 @@ func GetPortfolio() map[string]float64 {
 	// Get home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return metadata.Portfolio
+		return map[string]float64{}
 	}
 
 	// Check if metadta file exists
 	configPath := homeDir + "/.cryptgo-data.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return metadata.Portfolio
+		return map[string]float64{}
 	}
 
 	// Open file
 	configFile, err := os.Open(configPath)
 	if err != nil {
-		return metadata.Portfolio
+		return map[string]float64{}
 	}
 
 	// Read content
