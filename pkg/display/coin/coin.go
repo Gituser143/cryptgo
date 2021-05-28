@@ -57,7 +57,7 @@ func DisplayCoin(
 	currencyWidget := c.NewCurrencyPage()
 
 	// Selection of default table
-	selectedTable := myPage.IntervalTable
+	selectedTable := myPage.DetailsTable
 	selectedTable.ShowCursor = true
 
 	previousKey := ""
@@ -80,17 +80,17 @@ func DisplayCoin(
 	portfolioSelected := false
 
 	// intervals holds interval mappings to be used in the call to the history API
-	intervals := map[string]string{
-		"1  min":  "m1",
-		"5  min":  "m5",
-		"15 min":  "m15",
-		"30 min":  "m30",
-		"1  hour": "h1",
-		"2  hour": "h2",
-		"6  hour": "h6",
-		"12 hour": "h12",
-		"1  day":  "d1",
-	}
+	// intervals := map[string]string{
+	// 	"1  min":  "m1",
+	// 	"5  min":  "m5",
+	// 	"15 min":  "m15",
+	// 	"30 min":  "m30",
+	// 	"1  hour": "h1",
+	// 	"2  hour": "h2",
+	// 	"6  hour": "h6",
+	// 	"12 hour": "h12",
+	// 	"1  day":  "d1",
+	// }
 
 	// Initialise help menu
 	help := widgets.NewHelpMenu()
@@ -176,7 +176,7 @@ func DisplayCoin(
 			case "F":
 				if !helpSelected && !portfolioSelected && !selectCurrency {
 					selectedTable.ShowCursor = false
-					selectedTable = myPage.IntervalTable
+					selectedTable = myPage.DetailsTable
 				}
 
 			case "P":
@@ -332,40 +332,29 @@ func DisplayCoin(
 
 					}
 				} else {
-					myPage.IntervalTable.ShowCursor = true
+					myPage.DetailsTable.ShowCursor = true
 
 					switch e.ID {
 					case "j", "<Down>":
-						myPage.IntervalTable.ScrollDown()
+						myPage.DetailsTable.ScrollDown()
 					case "k", "<Up>":
-						myPage.IntervalTable.ScrollUp()
+						myPage.DetailsTable.ScrollUp()
 					case "<C-d>":
-						myPage.IntervalTable.ScrollHalfPageDown()
+						myPage.DetailsTable.ScrollHalfPageDown()
 					case "<C-u>":
-						myPage.IntervalTable.ScrollHalfPageUp()
+						myPage.DetailsTable.ScrollHalfPageUp()
 					case "<C-f>":
-						myPage.IntervalTable.ScrollPageDown()
+						myPage.DetailsTable.ScrollPageDown()
 					case "<C-b>":
-						myPage.IntervalTable.ScrollPageUp()
+						myPage.DetailsTable.ScrollPageUp()
 					case "g":
 						if previousKey == "g" {
-							myPage.IntervalTable.ScrollTop()
+							myPage.DetailsTable.ScrollTop()
 						}
 					case "<Home>":
-						myPage.IntervalTable.ScrollTop()
+						myPage.DetailsTable.ScrollTop()
 					case "G", "<End>":
-						myPage.IntervalTable.ScrollBottom()
-					case "<Enter>":
-						// Update interval
-						if myPage.IntervalTable.SelectedRow < len(myPage.IntervalTable.Rows) {
-							// Get interval
-							row := myPage.IntervalTable.Rows[myPage.IntervalTable.SelectedRow]
-							val := row[0]
-							myPage.ValueGraph.Data["Value"] = []float64{}
-
-							// Send new interval for GetCoinHistory
-							intervalChannel <- intervals[val]
-						}
+						myPage.DetailsTable.ScrollBottom()
 					}
 				}
 
@@ -380,7 +369,9 @@ func DisplayCoin(
 		case data := <-priceChannel:
 			// Update live price
 			p, _ := strconv.ParseFloat(data, 64)
-			myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
+			myPage.PriceBox.Rows = []string{
+				fmt.Sprintf("%.2f %s", p/currencyVal, currency),
+			}
 			if !selectCurrency && !helpSelected && !portfolioSelected {
 				ui.Render(myPage.PriceBox)
 			}
@@ -452,16 +443,6 @@ func DisplayCoin(
 
 				myPage.DetailsTable.Rows = rows
 
-				// Update Volume Guage
-				if volErr == nil {
-					if mCap > 0 {
-						percent := int((vol / mCap) * 100)
-						if percent <= 100 && percent >= 0 {
-							myPage.VolumeGauge.Percent = percent
-						}
-					}
-				}
-
 				// Get supply and Max supply
 				supply, err1 := strconv.ParseFloat(data.CoinAssetData.Data.Supply, 64)
 				maxSupply, err2 := strconv.ParseFloat(data.CoinAssetData.Data.MaxSupply, 64)
@@ -472,17 +453,6 @@ func DisplayCoin(
 					myPage.SupplyChart.Title = fmt.Sprintf(" Supply (%s) ", units)
 				}
 
-				// Update Price Box Change %
-				change := "NA"
-				c, err := strconv.ParseFloat(data.CoinAssetData.Data.ChangePercent24Hr, 64)
-				if err == nil {
-					if c < 0 {
-						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*c)
-					} else {
-						change = fmt.Sprintf("%s %.2f", UP_ARROW, c)
-					}
-				}
-				myPage.PriceBox.Rows[0][1] = change
 			}
 
 			// Sort favourites table
