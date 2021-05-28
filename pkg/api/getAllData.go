@@ -184,7 +184,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 	method := "GET"
 
 	// Create Request
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 				historyUrl := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=d1", val.Id)
 
 				// Create Request
-				req, err := http.NewRequest(method, historyUrl, nil)
+				req, err := http.NewRequestWithContext(ctx, method, historyUrl, nil)
 				if err != nil {
 					return err
 				}

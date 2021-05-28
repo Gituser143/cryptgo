@@ -69,11 +69,12 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 		for id := range favourites {
 			wg.Add(1)
 			go func(id string, wg *sync.WaitGroup, m *sync.Mutex) {
+				defer wg.Done()
 				data := CoinAsset{}
 				url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s", id)
 
 				// Create Request
-				req, err := http.NewRequest(method, url, nil)
+				req, err := http.NewRequestWithContext(ctx, method, url, nil)
 				if err != nil {
 					return
 				}
@@ -99,7 +100,6 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 					m.Unlock()
 				}
 
-				wg.Done()
 			}(id, &wg, &m)
 		}
 
@@ -148,7 +148,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		data := CoinHistory{}
 
 		// Create Request
-		req, err := http.NewRequest(method, url, nil)
+		req, err := http.NewRequestWithContext(ctx, method, url, nil)
 		if err != nil {
 			return err
 		}
@@ -215,7 +215,7 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 	client := &http.Client{}
 
 	// Create Request
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return err
 	}
