@@ -29,10 +29,15 @@ func LoopTick(ctx context.Context, t time.Duration, action func() error) error {
 
 	for {
 		// Run action function
-		err := action()
-		if err != nil {
-			return err
-		}
+		// err := action()
+		// if err != nil {
+		// 	return err
+		// }
+
+		// Run action on an unmanaged routine
+		// 		Done to avoid delayed exit
+		// 		Need better way to run action and collect error
+		go action()
 
 		select {
 		// Return if context is cancelled

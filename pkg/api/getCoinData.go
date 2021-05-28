@@ -69,8 +69,20 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 		for id := range favourites {
 			wg.Add(1)
 			go func(id string, wg *sync.WaitGroup, m *sync.Mutex) {
-				defer wg.Done()
+
+				price := 0.0
 				data := CoinAsset{}
+
+				// In case errorred in later stages, below deferred function call
+				// is done to make sure coin does not vanish from favourites
+				defer func() {
+					m.Lock()
+					favouriteData[data.Data.Symbol] = price
+					m.Unlock()
+				}()
+
+				defer wg.Done()
+
 				url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s", id)
 
 				// Create Request
@@ -93,11 +105,10 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 				}
 
 				// Get price
-				price, err := strconv.ParseFloat(data.Data.PriceUsd, 64)
-				if err == nil {
-					m.Lock()
-					favouriteData[data.Data.Symbol] = price
-					m.Unlock()
+				price, err = strconv.ParseFloat(data.Data.PriceUsd, 64)
+				if err != nil {
+					price = 0
+					return
 				}
 
 			}(id, &wg, &m)
@@ -266,7 +277,15 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 	msg := make(map[string]string)
 
 	return utils.LoopTick(ctx, time.Duration(100*time.Millisecond), func() error {
-		err := c.ReadJSON(&msg)
+		// Defer panic recovery for closed websocket
+		var err error
+		defer func() {
+			if e := recover(); e != nil {
+				err = fmt.Errorf("socker read error")
+			}
+		}()
+
+		err = c.ReadJSON(&msg)
 		if err != nil {
 			return err
 		}
