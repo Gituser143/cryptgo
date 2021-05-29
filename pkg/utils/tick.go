@@ -23,26 +23,23 @@ import (
 
 // LoopTick, runs a given action in a loop in periods of 't' duration. It exits
 // when the context is cancelled
-func LoopTick(ctx context.Context, t time.Duration, action func() error) error {
+func LoopTick(ctx context.Context, t time.Duration, action func(errChan chan error)) error {
 	ticker := time.NewTicker(t)
 	defer ticker.Stop()
 
-	for {
-		// Run action function
-		// err := action()
-		// if err != nil {
-		// 	return err
-		// }
+	errChan := make(chan error)
 
-		// Run action on an unmanaged routine
-		// 		Done to avoid delayed exit
-		// 		Need better way to run action and collect error
-		go action()
+	for {
+
+		// Run action
+		go action(errChan)
 
 		select {
 		// Return if context is cancelled
 		case <-ctx.Done():
 			return ctx.Err()
+		case err := <-errChan:
+			return err
 		// Break select every tick
 		case <-ticker.C:
 		}

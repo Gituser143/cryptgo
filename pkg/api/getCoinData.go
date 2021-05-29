@@ -58,12 +58,17 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 	// Init Client
 	client := &http.Client{}
 
-	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
+	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func(errChan chan error) {
 
 		var wg sync.WaitGroup
 		var m sync.Mutex
+		var err error
 
 		favouriteData := make(map[string]float64)
+
+		defer func() {
+			errChan <- err
+		}()
 
 		// Iterate over favorite coins
 		for id := range favourites {
@@ -125,11 +130,11 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 		// Send data
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			err = ctx.Err()
+			return
 		case dataChannel <- coinData:
 		}
 
-		return nil
 	})
 }
 
@@ -144,10 +149,17 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 	// Set Default Interval to 1 day
 	i := "d1"
 
-	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func() error {
+	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
+		var err error
+
+		defer func() {
+			errChan <- err
+		}()
+
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			err = ctx.Err()
+			return
 		case interval := <-intervalChannel:
 			// Update interval
 			i = interval
@@ -161,20 +173,20 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		// Create Request
 		req, err := http.NewRequestWithContext(ctx, method, url, nil)
 		if err != nil {
-			return err
+			return
 		}
 
 		// Send Request
 		res, err := client.Do(req)
 		if err != nil {
-			return err
+			return
 		}
 		defer res.Body.Close()
 
 		// Read response
 		err = json.NewDecoder(res.Body).Decode(&data)
 		if err != nil {
-			return err
+			return
 		}
 
 		// Aggregate price history
@@ -182,7 +194,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		for _, v := range data.Data {
 			p, err := strconv.ParseFloat(v.Price, 64)
 			if err != nil {
-				return err
+				return
 			}
 
 			price = append(price, p)
@@ -208,11 +220,10 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		// Send Data
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			err = ctx.Err()
+			return
 		case dataChannel <- coinData:
 		}
-
-		return nil
 	})
 }
 
@@ -231,20 +242,25 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 		return err
 	}
 
-	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func() error {
+	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
 		data := CoinAsset{}
+		var err error
+
+		defer func() {
+			errChan <- err
+		}()
 
 		// Send Request
 		res, err := client.Do(req)
 		if err != nil {
-			return err
+			return
 		}
 		defer res.Body.Close()
 
 		// Read response
 		err = json.NewDecoder(res.Body).Decode(&data)
 		if err != nil {
-			return err
+			return
 		}
 
 		// Aggregate data
@@ -256,11 +272,10 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 		// Send data
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			err = ctx.Err()
+			return
 		case dataChannel <- coinData:
 		}
-
-		return nil
 	})
 }
 
@@ -276,7 +291,7 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 
 	msg := make(map[string]string)
 
-	return utils.LoopTick(ctx, time.Duration(100*time.Millisecond), func() error {
+	return utils.LoopTick(ctx, time.Duration(100*time.Millisecond), func(errChan chan error) {
 		// Defer panic recovery for closed websocket
 		var err error
 		defer func() {
@@ -285,17 +300,20 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 			}
 		}()
 
+		defer func() {
+			errChan <- err
+		}()
+
 		err = c.ReadJSON(&msg)
 		if err != nil {
-			return err
+			return
 		}
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			err = ctx.Err()
+			return
 		case dataChannel <- msg[id]:
 		}
-
-		return nil
 	})
 }
