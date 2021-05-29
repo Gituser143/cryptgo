@@ -148,9 +148,9 @@ func (t *Table) Draw(buf *ui.Buffer) {
 					style.Fg = t.CursorColor
 				} else {
 					rowData := strings.Split(t.Rows[rowNum][i], " ")
-					style.Fg = ui.ColorRed
+					style.Fg = ui.ColorGreen
 					if string(rowData[0]) == DOWN_ARROW {
-						style.Fg = ui.ColorGreen
+						style.Fg = ui.ColorRed
 					}
 				}
 			}
