@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
@@ -54,6 +54,8 @@ type AssetData struct {
 	Data          []Asset `json:"data"`
 	TimeStamp     uint    `json:"timestamp"`
 	TopCoinData   [][]float64
+	MaxPrices     []float64
+	MinPrices     []float64
 	TopCoins      []string
 	AllCoinData   geckoTypes.CoinsMarket
 }
@@ -100,21 +102,22 @@ func GetTopNCoinsFromCoinGecko(n int) (geckoTypes.CoinsMarket, error) {
 	return coinData, nil
 }
 
-func GetTopNCoinIdsFromCoinGecko(n int) ([]string, error) {
+func GetTopNCoinIdsFromCoinGecko(n int) (map[int][]string, error) {
 
 	coinData, err := GetTopNCoinsFromCoinGecko(n)
 	if err != nil {
 		return nil, err
 	}
 
-	topNIds := []string{}
+	data := make(map[int][]string)
 
 	for i := 0; i < n; i += 1 {
 		coinId := coinData[i].ID
-		topNIds = append(topNIds, coinId)
+		coinName := coinData[i].Name
+		data[i] = []string{coinId, coinName}
 	}
 
-	return topNIds, nil
+	return data, nil
 }
 
 func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duration string) float64 {
@@ -140,7 +143,7 @@ func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duratio
 // dataChannel
 func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
-	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func(errChan chan error) {
+	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
 		var finalErr error = nil
 		data := AssetData{}
 
@@ -184,24 +187,11 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 //  on the dataChannel
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
-	topThreeIds, err := GetTopNCoinIdsFromCoinGecko(3)
-	if err != nil {
-		return err
-	}
-
-	url := fmt.Sprintf("https://api.coincap.io/v2/assets?ids=%s,%s,%s", topThreeIds[0], topThreeIds[1], topThreeIds[2])
-	method := "GET"
-
-	// Create Request
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
-	if err != nil {
-		return err
-	}
-
 	// Init Client
 	client := &http.Client{}
+	geckoClient := gecko.NewClient(client)
 
-	return utils.LoopTick(ctx, time.Duration(5)*time.Second, func(errChan chan error) {
+	return utils.LoopTick(ctx, time.Duration(1)*time.Minute, func(errChan chan error) {
 		var finalErr error = nil
 		data := AssetData{}
 
@@ -213,16 +203,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 
 		if *sendData {
 
-			// Send Request
-			res, err := client.Do(req)
-			if err != nil {
-				finalErr = err
-				return
-			}
-			defer res.Body.Close()
-
-			// Read response
-			err = json.NewDecoder(res.Body).Decode(&data)
+			topIDs, err := GetTopNCoinIdsFromCoinGecko(3)
 			if err != nil {
 				finalErr = err
 				return
@@ -230,51 +211,60 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 
 			topCoinData := make([][]float64, 3)
 			topCoins := make([]string, 3)
+			maxPrices := make([]float64, 3)
+			minPrices := make([]float64, 3)
 
-			for i, val := range data.Data {
-				historyUrl := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=d1", val.Id)
+			var wg sync.WaitGroup
+			var m sync.Mutex
 
-				// Create Request
-				req, err := http.NewRequestWithContext(ctx, method, historyUrl, nil)
-				if err != nil {
-					finalErr = err
-					return
-				}
+			for i, coin := range topIDs {
+				id := coin[0]
+				name := coin[1]
 
-				// Fetch History
-				res, err := client.Do(req)
-				if err != nil {
-					finalErr = err
-					return
-				}
-				defer res.Body.Close()
+				wg.Add(1)
 
-				historyData := CoinHistory{}
-
-				// Read response
-				err = json.NewDecoder(res.Body).Decode(&historyData)
-				if err != nil {
-					finalErr = err
-					return
-				}
-
-				// Aggregate price
-				price := []float64{}
-				for _, v := range historyData.Data {
-					p, err := strconv.ParseFloat(v.Price, 64)
+				go func(id, name string, index int, wg *sync.WaitGroup, m *sync.Mutex) {
+					defer wg.Done()
+					data, err := geckoClient.CoinsIDMarketChart(id, "usd", "7")
 					if err != nil {
 						finalErr = err
 						return
 					}
 
-					price = append(price, p)
-				}
+					price := []float64{}
+					prices := *data.Prices
+					max := float64(prices[0][1])
+					min := float64(prices[1][1])
+					for _, val := range *data.Prices {
+						p := float64(val[1])
+						if p > max {
+							max = p
+						}
+						if p < min {
+							min = p
+						}
+						price = append(price, p)
+					}
 
-				topCoinData[i] = price
-				topCoins[i] = val.Name
+					// Clean prices
+					for i, val := range price {
+						price[i] = val - min
+					}
+
+					m.Lock()
+					maxPrices[index] = max
+					minPrices[index] = min
+					topCoinData[index] = price
+					topCoins[index] = name
+					m.Unlock()
+				}(id, name, i, &wg, &m)
 			}
 
+			wg.Wait()
+
 			// Aggregate data
+			data.MaxPrices = maxPrices
+			data.MinPrices = minPrices
 			data.TopCoinData = topCoinData
 			data.TopCoins = topCoins
 			data.IsTopCoinData = true

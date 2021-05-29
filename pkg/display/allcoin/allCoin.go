@@ -133,7 +133,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	updateUI()
 
 	// coinIDs tracks symbol: id
-	coinIDs, _ := api.GetTopNCoinSymbolToIDMap(200)
+	// coinIDs, _ := api.GetTopNCoinSymbolToIDMap(200)
+	coinIDs := make(map[string]string)
 
 	// Create Channel to get keyboard events
 	uiEvents := ui.PollEvents()
@@ -187,7 +188,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows()
 					utilitySelected = "CURRENCY"
-					updateUI()
 				}
 
 			case "C":
@@ -197,15 +197,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateAll()
 					utilitySelected = "CURRENCY"
-					updateUI()
 				}
+
 			case "%":
 				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
 					selectedTable = changePercentWidget.Table
 					selectedTable.ShowCursor = true
 					utilitySelected = "CHANGE"
-					updateUI()
 				}
 
 			case "P":
@@ -214,12 +213,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectedTable = portfolioTable.Table
 					selectedTable.ShowCursor = true
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
-					updateUI()
+					utilitySelected = "PORTFOLIO"
 				}
-			}
 
-			// Handle Table Navigation and Actions
-			switch e.ID {
 			// Navigations
 			case "<Escape>":
 				utilitySelected = ""
@@ -486,48 +482,50 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 			}
 
-			// Handle Sorting of tables
-			switch selectedTable {
-			case myPage.CoinTable:
-				switch e.ID {
-				// Sort Ascending
-				case "1", "2", "3", "4":
-					idx, _ := strconv.Atoi(e.ID)
-					coinSortIdx = idx - 1
-					myPage.CoinTable.Header = append([]string{}, coinHeader...)
-					myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
-					coinSortAsc = true
-					utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
+			if utilitySelected == "" {
+				// Handle Sorting of tables
+				switch selectedTable {
+				case myPage.CoinTable:
+					switch e.ID {
+					// Sort Ascending
+					case "1", "2", "3", "4":
+						idx, _ := strconv.Atoi(e.ID)
+						coinSortIdx = idx - 1
+						myPage.CoinTable.Header = append([]string{}, coinHeader...)
+						myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+						coinSortAsc = true
+						utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
 
-				// Sort Descending
-				case "<F1>", "<F2>", "<F3>", "<F4>":
-					myPage.CoinTable.Header = append([]string{}, coinHeader...)
-					idx, _ := strconv.Atoi(e.ID[2:3])
-					coinSortIdx = idx - 1
-					myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
-					coinSortAsc = false
-					utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
-				}
+					// Sort Descending
+					case "<F1>", "<F2>", "<F3>", "<F4>":
+						myPage.CoinTable.Header = append([]string{}, coinHeader...)
+						idx, _ := strconv.Atoi(e.ID[2:3])
+						coinSortIdx = idx - 1
+						myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+						coinSortAsc = false
+						utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
+					}
 
-			case myPage.FavouritesTable:
-				switch e.ID {
-				// Sort Ascending
-				case "1", "2":
-					idx, _ := strconv.Atoi(e.ID)
-					favSortIdx = idx - 1
-					myPage.FavouritesTable.Header = append([]string{}, favHeader...)
-					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
-					favSortAsc = true
-					utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+				case myPage.FavouritesTable:
+					switch e.ID {
+					// Sort Ascending
+					case "1", "2":
+						idx, _ := strconv.Atoi(e.ID)
+						favSortIdx = idx - 1
+						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+						favSortAsc = true
+						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
-				// Sort Descending
-				case "<F1>", "<F2>":
-					myPage.FavouritesTable.Header = append([]string{}, favHeader...)
-					idx, _ := strconv.Atoi(e.ID[2:3])
-					favSortIdx = idx - 1
-					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
-					favSortAsc = false
-					utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+					// Sort Descending
+					case "<F1>", "<F2>":
+						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+						idx, _ := strconv.Atoi(e.ID[2:3])
+						favSortIdx = idx - 1
+						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+						favSortAsc = false
+						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+					}
 				}
 			}
 
@@ -543,15 +541,20 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				// Update Top Coin data
 				for i, v := range data.TopCoinData {
 					// Set title to coin name
-					myPage.TopCoinGraphs[i].Title = " " + data.TopCoins[i] + " "
+					myPage.TopCoinGraphs[i].Title = fmt.Sprintf(" %s (7D) ", data.TopCoins[i])
 
 					// Update value graphs
 					myPage.TopCoinGraphs[i].Data["Value"] = v
 
 					// Set value, max & min values
-					myPage.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f %s", v[len(v)-1]/currencyVal, currency)
-					myPage.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", utils.MaxFloat64(v...)/currencyVal, currency)
-					myPage.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", utils.MinFloat64(v...)/currencyVal, currency)
+					maxValue := data.MaxPrices[i] / currencyVal
+					minValue := data.MinPrices[i] / currencyVal
+					// Current value is last point (cleaned) in graph + minimum value
+					value := (v[len(v)-1] + data.MinPrices[i]) / currencyVal
+
+					myPage.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f %s", value, currency)
+					myPage.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", maxValue, currency)
+					myPage.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", minValue, currency)
 				}
 			} else {
 				rows := [][]string{}
@@ -564,6 +567,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 				// Iterate over coin assets
 				for _, val := range data.AllCoinData {
+					coinIDs[strings.ToUpper(val.Symbol)] = val.ID
 					// Get coin price
 					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
