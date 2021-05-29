@@ -28,7 +28,7 @@ type CoinPage struct {
 	FavouritesTable *widgets.Table
 	ValueGraph      *widgets.LineGraph
 	DetailsTable    *widgets.Table
-	ChangesList     *w.List
+	ChangesTable    *widgets.Table
 	PriceBox        *w.List
 	ExplorerTable   *widgets.Table
 	SupplyChart     *widgets.BarChart
@@ -41,7 +41,7 @@ func NewCoinPage() *CoinPage {
 		FavouritesTable: widgets.NewTable(),
 		ValueGraph:      widgets.NewLineGraph(),
 		DetailsTable:    widgets.NewTable(),
-		ChangesList:     w.NewList(),
+		ChangesTable:    widgets.NewTable(),
 		PriceBox:        w.NewList(),
 		ExplorerTable:   widgets.NewTable(),
 		SupplyChart:     widgets.NewBarChart(),
@@ -90,10 +90,19 @@ func (page *CoinPage) InitCoin() {
 	}
 	page.DetailsTable.CursorColor = ui.ColorCyan
 
-	// Initialise Change List
-	page.ChangesList.Title = " Changes "
-	page.ChangesList.BorderStyle.Fg = ui.ColorCyan
-	page.ChangesList.BorderStyle.Bg = ui.ColorClear
+	// Initialise Change Table
+	page.ChangesTable.Title = " Changes "
+	page.ChangesTable.BorderStyle.Fg = ui.ColorCyan
+	page.ChangesTable.BorderStyle.Bg = ui.ColorClear
+	page.ChangesTable.Header = []string{"Interval", "Change"}
+	page.ChangesTable.ColResizer = func() {
+		x := page.ChangesTable.Inner.Dx()
+		page.ChangesTable.ColWidths = []int{
+			4 * x / 10,
+			6 * x / 10,
+		}
+	}
+	page.ChangesTable.ChangeCol[1] = true
 
 	// Initialise Price Box
 	page.PriceBox.Title = " Live Price "
@@ -133,7 +142,7 @@ func (page *CoinPage) InitCoin() {
 			ui.NewRow(0.5,
 				ui.NewCol(0.5,
 					ui.NewRow(0.3, page.PriceBox),
-					ui.NewRow(0.7, page.ChangesList),
+					ui.NewRow(0.7, page.ChangesTable),
 				),
 				ui.NewCol(0.5,
 					ui.NewRow(0.5, page.ExplorerTable),
