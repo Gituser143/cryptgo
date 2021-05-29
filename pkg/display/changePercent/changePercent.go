@@ -38,7 +38,7 @@ type ChangePercentageDurationTable struct {
 }
 
 // NewCurrencyPage creates, initialises and returns a pointer to an instance of CurrencyTable
-func NewChangePercentageDurationPage() *ChangePercentageDurationTable {
+func NewChangePercentPage() *ChangePercentageDurationTable {
 	c := &ChangePercentageDurationTable{
 		Table: widgets.NewTable(),
 	}

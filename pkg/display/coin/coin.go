@@ -195,10 +195,10 @@ func DisplayCoin(
 					helpSelected = false
 					updateUI()
 				case "j", "<Down>":
-					help.List.ScrollDown()
+					help.Table.ScrollDown()
 					ui.Render(help)
 				case "k", "<Up>":
-					help.List.ScrollUp()
+					help.Table.ScrollUp()
 					ui.Render(help)
 				}
 			} else if portfolioSelected {

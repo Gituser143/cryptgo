@@ -56,6 +56,8 @@ type Table struct {
 	TopRow       int          // used to indicate where in the table we are scrolled at
 	ChangeCol    map[int]bool // Used to set if a column represents change
 	ColResizer   func()
+
+	IsHelp bool
 }
 
 // NewTable returns a new Table instance
@@ -118,6 +120,11 @@ func (t *Table) Draw(buf *ui.Buffer) {
 		y := (rowNum + 2) - t.TopRow
 		// prints cursor
 		style := t.RowStyle
+		if t.IsHelp {
+			if len(t.Rows[rowNum][0]) > 0 && string(t.Rows[rowNum][0][0]) != " " {
+				style = t.HeaderStyle
+			}
+		}
 		if t.ShowCursor {
 			if (t.SelectedItem == "" && rowNum == t.SelectedRow) || (t.SelectedItem != "" && t.SelectedItem == row[t.UniqueCol]) {
 				style.Fg = t.CursorColor

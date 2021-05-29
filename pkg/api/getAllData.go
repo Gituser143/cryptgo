@@ -141,11 +141,13 @@ func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duratio
 func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
 	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func(errChan chan error) {
-		var err error
+		var finalErr error = nil
 		data := AssetData{}
 
 		defer func() {
-			errChan <- err
+			if finalErr != nil {
+				errChan <- finalErr
+			}
 		}()
 
 		if *sendData {
@@ -153,20 +155,21 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 			coinsData, err := GetTopNCoinsFromCoinGecko(100)
 			data.AllCoinData = coinsData
 			if err != nil {
+				finalErr = err
 				return
 			}
 
 			// Send Data
 			select {
 			case <-ctx.Done():
-				err = ctx.Err()
+				finalErr = ctx.Err()
 				return
 			case dataChannel <- data:
 			}
 		} else {
 			select {
 			case <-ctx.Done():
-				err = ctx.Err()
+				finalErr = ctx.Err()
 				return
 			default:
 			}
@@ -199,11 +202,13 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 	client := &http.Client{}
 
 	return utils.LoopTick(ctx, time.Duration(5)*time.Second, func(errChan chan error) {
-		var err error
+		var finalErr error = nil
 		data := AssetData{}
 
 		defer func() {
-			errChan <- err
+			if finalErr != nil {
+				errChan <- finalErr
+			}
 		}()
 
 		if *sendData {
@@ -211,6 +216,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			// Send Request
 			res, err := client.Do(req)
 			if err != nil {
+				finalErr = err
 				return
 			}
 			defer res.Body.Close()
@@ -218,6 +224,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			// Read response
 			err = json.NewDecoder(res.Body).Decode(&data)
 			if err != nil {
+				finalErr = err
 				return
 			}
 
@@ -230,12 +237,14 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 				// Create Request
 				req, err := http.NewRequestWithContext(ctx, method, historyUrl, nil)
 				if err != nil {
+					finalErr = err
 					return
 				}
 
 				// Fetch History
 				res, err := client.Do(req)
 				if err != nil {
+					finalErr = err
 					return
 				}
 				defer res.Body.Close()
@@ -245,6 +254,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 				// Read response
 				err = json.NewDecoder(res.Body).Decode(&historyData)
 				if err != nil {
+					finalErr = err
 					return
 				}
 
@@ -253,6 +263,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 				for _, v := range historyData.Data {
 					p, err := strconv.ParseFloat(v.Price, 64)
 					if err != nil {
+						finalErr = err
 						return
 					}
 
@@ -271,14 +282,14 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			// Send data
 			select {
 			case <-ctx.Done():
-				err = ctx.Err()
+				finalErr = ctx.Err()
 				return
 			case dataChannel <- data:
 			}
 		} else {
 			select {
 			case <-ctx.Done():
-				err = ctx.Err()
+				finalErr = ctx.Err()
 				return
 			default:
 			}

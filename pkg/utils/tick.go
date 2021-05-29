@@ -39,7 +39,9 @@ func LoopTick(ctx context.Context, t time.Duration, action func(errChan chan err
 		case <-ctx.Done():
 			return ctx.Err()
 		case err := <-errChan:
-			return err
+			if err != nil {
+				return err
+			}
 		// Break select every tick
 		case <-ticker.C:
 		}
