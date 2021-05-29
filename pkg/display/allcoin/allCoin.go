@@ -512,7 +512,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						// Serve Live price of coin
 						eg.Go(func() error {
 							err := api.GetLivePrice(coinCtx, id, coinPriceChannel)
-							return err
+							if err != nil && err.Error() != "socket read error" {
+								return err
+							}
+							return nil
 						})
 
 						// Serve Visuals for coin

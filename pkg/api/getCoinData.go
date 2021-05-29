@@ -296,7 +296,7 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 		var err error
 		defer func() {
 			if e := recover(); e != nil {
-				err = fmt.Errorf("socker read error")
+				err = fmt.Errorf("socket read error")
 			}
 		}()
 
