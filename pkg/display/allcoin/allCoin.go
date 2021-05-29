@@ -330,6 +330,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
 						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
+					utilitySelected = ""
+
 				case "CHANGE":
 					if changePercentWidget.SelectedRow < len(changePercentWidget.Rows) {
 						row := changePercentWidget.Rows[changePercentWidget.SelectedRow]
@@ -338,6 +340,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						coinHeader[3] = fmt.Sprintf("Change %%(%s)", changePercent)
 					}
+					utilitySelected = ""
+
 				case "":
 					// pause UI and data send
 					pause()
@@ -430,10 +434,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					// unpause data send and receive
 					pause()
 					updateUI()
+					utilitySelected = ""
 				}
-				utilitySelected = ""
-				selectedTable = myPage.CoinTable
-				selectedTable.ShowCursor = true
+
+				if utilitySelected == "" {
+					selectedTable = myPage.CoinTable
+					selectedTable.ShowCursor = true
+				}
 
 			case "s":
 				if utilitySelected == "" {
