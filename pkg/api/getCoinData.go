@@ -31,6 +31,11 @@ import (
 	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
 
+const (
+	UP_ARROW   = "▲"
+	DOWN_ARROW = "▼"
+)
+
 // API Documentation can be found at https://docs.coincap.io/
 
 // CoinData Holds data pertaining to a single coin.
@@ -56,14 +61,14 @@ type CoinDetails struct {
 	Symbol         string
 	Rank           string
 	BlockTime      string
-	MarketCap      string
+	MarketCap      float64
 	Website        string
 	Explorers      []string
-	ATH            string
+	ATH            float64
 	ATHDate        string
-	ATL            string
+	ATL            float64
 	ATLDate        string
-	TotalVolume    string
+	TotalVolume    float64
 	ChangePercents [][]string
 	TotalSupply    float64
 	CurrentSupply  float64
@@ -239,7 +244,7 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 	developerData := false
 	sparkline := false
 
-	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
+	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
 		var finalErr error = nil
 
 		defer func() {
@@ -254,31 +259,67 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			return
 		}
 
+		totalSupply := 0.0
+		if coinData.MarketData.TotalSupply != nil {
+			totalSupply = *coinData.MarketData.TotalSupply
+		}
+
+		changePercents := [][]string{
+			{"24H", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage24h)},
+			{"7D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage7d)},
+			{"14D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage14d)},
+			{"30D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage30d)},
+			{"60D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage60d)},
+			{"200D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage200d)},
+			{"1Y", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage1y)},
+		}
+
+		for i, row := range changePercents {
+			change := row[1]
+			if string(change[0]) == "-" {
+				change = DOWN_ARROW + " " + change[1:]
+			} else {
+				change = UP_ARROW + " " + change
+			}
+			changePercents[i][1] = change
+		}
+
+		timeLayout := "2006-01-02T15:04:05.000Z"
+		tATHDate, err := time.Parse(timeLayout, coinData.MarketData.ATHDate["usd"])
+		if err != nil {
+			finalErr = err
+			return
+		}
+
+		tATLDate, err := time.Parse(timeLayout, coinData.MarketData.ATLDate["usd"])
+		if err != nil {
+			finalErr = err
+			return
+		}
+
+		tUpdate, err := time.Parse(timeLayout, coinData.LastUpdated)
+		if err != nil {
+			finalErr = err
+			return
+		}
+
 		data := CoinDetails{
-			Name:        coinData.Name,
-			Symbol:      strings.ToUpper(coinData.Symbol),
-			Rank:        fmt.Sprintf("%d", coinData.MarketCapRank),
-			BlockTime:   fmt.Sprintf("%d", coinData.BlockTimeInMin),
-			MarketCap:   fmt.Sprintf("%f", coinData.MarketData.MarketCap["usd"]),
-			Website:     "",
-			Explorers:   []string{},
-			ATH:         fmt.Sprintf("%f", coinData.MarketData.ATH["usd"]),
-			ATHDate:     coinData.MarketData.ATHDate["usd"],
-			ATL:         fmt.Sprintf("%f", coinData.MarketData.ATL["usd"]),
-			ATLDate:     coinData.MarketData.ATLDate["usd"],
-			TotalVolume: fmt.Sprintf("%f", coinData.MarketData.TotalVolume["usd"]),
-			ChangePercents: [][]string{
-				{"24H", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage24h)},
-				{"7D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage7d)},
-				{"14D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage14d)},
-				{"30D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage30d)},
-				{"60D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage60d)},
-				{"200D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage200d)},
-				{"1Y", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage1y)},
-			},
-			TotalSupply:   *coinData.MarketData.TotalSupply,
-			CurrentSupply: coinData.MarketData.CirculatingSupply,
-			LastUpdate:    coinData.LastUpdated,
+			Name:           coinData.Name,
+			Symbol:         strings.ToUpper(coinData.Symbol),
+			Rank:           fmt.Sprintf("%d", coinData.MarketCapRank),
+			BlockTime:      fmt.Sprintf("%d", coinData.BlockTimeInMin),
+			MarketCap:      coinData.MarketData.MarketCap["usd"],
+			Website:        "",
+			Explorers:      []string{},
+			ATH:            coinData.MarketData.ATH["usd"],
+			ATHDate:        tATHDate.Format(time.RFC822),
+			ATL:            coinData.MarketData.ATL["usd"],
+			ATLDate:        tATLDate.Format(time.RFC822),
+			TotalVolume:    coinData.MarketData.TotalVolume["usd"],
+			ChangePercents: changePercents,
+			TotalSupply:    totalSupply,
+			CurrentSupply:  coinData.MarketData.CirculatingSupply,
+			LastUpdate:     tUpdate.Format(time.RFC822),
 		}
 
 		// Aggregate data

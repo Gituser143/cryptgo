@@ -151,7 +151,7 @@ func (t *Table) Draw(buf *ui.Buffer) {
 			style.Bg = tempBgColor
 			// Change Foreground color if the column number is in the ColColor list
 			if _, ok := t.ChangeCol[i]; ok {
-				if rowNum == t.SelectedRow {
+				if rowNum == t.SelectedRow && t.ShowCursor {
 					style.Fg = t.CursorColor
 				} else {
 					rowData := strings.Split(t.Rows[rowNum][i], " ")

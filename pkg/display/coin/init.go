@@ -103,6 +103,7 @@ func (page *CoinPage) InitCoin() {
 		}
 	}
 	page.ChangesTable.ChangeCol[1] = true
+	page.ChangesTable.ShowCursor = false
 
 	// Initialise Price Box
 	page.PriceBox.Title = " Live Price "

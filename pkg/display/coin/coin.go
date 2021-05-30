@@ -401,20 +401,36 @@ func DisplayCoin(
 			case "DETAILS":
 				// Update Details table
 				myPage.DetailsTable.Header = []string{"Name", data.Details.Name}
+
+				marketCapVals, units := utils.RoundValues(data.Details.MarketCap, 0)
+				marketCap := fmt.Sprintf("%.2f %s %s", marketCapVals[0]/currencyVal, units, currency)
+
+				ATHVals, units := utils.RoundValues(data.Details.ATH, 0)
+				ATH := fmt.Sprintf("%.2f %s %s", ATHVals[0]/currencyVal, units, currency)
+
+				ATLVals, units := utils.RoundValues(data.Details.ATL, 0)
+				ATL := fmt.Sprintf("%.2f %s %s", ATLVals[0]/currencyVal, units, currency)
+
+				TotalVolVals, units := utils.RoundValues(data.Details.TotalVolume, 0)
+				TotalVolume := fmt.Sprintf("%.2f %s %s", TotalVolVals[0]/currencyVal, units, currency)
+
 				rows := [][]string{
 					{"Symbol", data.Details.Symbol},
 					{"Rank", data.Details.Rank},
 					{"BlockTime (min)", data.Details.BlockTime},
-					{"MarketCap", data.Details.MarketCap},
-					{"ATH", data.Details.ATH},
+					{"MarketCap", marketCap},
+					{"ATH", ATH},
 					{"ATHDate", data.Details.ATHDate},
-					{"ATL", data.Details.ATL},
+					{"ATL", ATL},
 					{"ATLDate", data.Details.ATLDate},
-					{"TotalVolume", data.Details.TotalVolume},
+					{"TotalVolume", TotalVolume},
 					{"LastUpdate", data.Details.LastUpdate},
 				}
 
 				myPage.DetailsTable.Rows = rows
+
+				// Get Change Percents
+				myPage.ChangesTable.Rows = data.Details.ChangePercents
 
 				// Get supply and Max supply
 				supply := data.Details.CurrentSupply
