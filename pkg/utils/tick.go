@@ -29,10 +29,11 @@ func LoopTick(ctx context.Context, t time.Duration, action func() error) error {
 
 	for {
 		// Run action function
-		err := action()
-		if err != nil {
-			return err
-		}
+		// err := action()
+		// if err != nil {
+		// 	return err
+		// }
+		go action()
 
 		select {
 		// Return if context is cancelled
