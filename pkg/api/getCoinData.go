@@ -22,11 +22,18 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/gorilla/websocket"
+	gecko "github.com/superoo7/go-gecko/v3"
+	geckoTypes "github.com/superoo7/go-gecko/v3/types"
+)
+
+const (
+	UP_ARROW   = "▲"
+	DOWN_ARROW = "▼"
 )
 
 // API Documentation can be found at https://docs.coincap.io/
@@ -35,13 +42,12 @@ import (
 // This is used to serve per coin details.
 // It additionally holds a map of favourite coins.
 type CoinData struct {
-	Type          string
-	PriceHistory  []float64
-	MinPrice      float64
-	MaxPrice      float64
-	CoinAssetData CoinAsset
-	Price         string
-	Favourites    map[string]float64
+	Type         string
+	PriceHistory []float64
+	MinPrice     float64
+	MaxPrice     float64
+	Details      CoinDetails
+	Favourites   map[string]float64
 }
 
 // CoinAsset holds Asset data for a single coin
@@ -50,60 +56,69 @@ type CoinAsset struct {
 	TimeStamp uint  `json:"timestamp"`
 }
 
+type CoinDetails struct {
+	Name           string
+	Symbol         string
+	Rank           string
+	BlockTime      string
+	MarketCap      float64
+	Website        string
+	Explorers      [][]string
+	ATH            float64
+	ATHDate        string
+	ATL            float64
+	ATLDate        string
+	TotalVolume    float64
+	ChangePercents [][]string
+	TotalSupply    float64
+	CurrentSupply  float64
+	LastUpdate     string
+}
+
 // GetFavouritePrices gets coin prices for coins specified by favourites.
 // This data is returned on the dataChannel.
 func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataChannel chan CoinData) error {
-	method := "GET"
 
 	// Init Client
-	client := &http.Client{}
+	geckoClient := gecko.NewClient(nil)
 
-	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
+	// Set Parameters
+	vsCurrency := "usd"
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	page := 1
+	sparkline := true
+	priceChangePercentage := []string{}
 
-		var wg sync.WaitGroup
-		var m sync.Mutex
+	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
+
+		var finalErr error
 
 		favouriteData := make(map[string]float64)
 
-		// Iterate over favorite coins
+		defer func() {
+			if finalErr != nil {
+				errChan <- finalErr
+			}
+		}()
+
+		IDs := []string{}
+
 		for id := range favourites {
-			wg.Add(1)
-			go func(id string, wg *sync.WaitGroup, m *sync.Mutex) {
-				defer wg.Done()
-				data := CoinAsset{}
-				url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s", id)
-
-				// Create Request
-				req, err := http.NewRequestWithContext(ctx, method, url, nil)
-				if err != nil {
-					return
-				}
-
-				// Send Request
-				res, err := client.Do(req)
-				if err != nil {
-					return
-				}
-				defer res.Body.Close()
-
-				// Read response
-				err = json.NewDecoder(res.Body).Decode(&data)
-				if err != nil {
-					return
-				}
-
-				// Get price
-				price, err := strconv.ParseFloat(data.Data.PriceUsd, 64)
-				if err == nil {
-					m.Lock()
-					favouriteData[data.Data.Symbol] = price
-					m.Unlock()
-				}
-
-			}(id, &wg, &m)
+			IDs = append(IDs, id)
 		}
 
-		wg.Wait()
+		perPage := len(IDs)
+
+		coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, IDs, order, perPage, page, sparkline, priceChangePercentage)
+		if err != nil {
+			finalErr = err
+			return
+		}
+
+		for _, val := range *coinDataPointer {
+			symbol := strings.ToUpper(val.Symbol)
+			favouriteData[symbol] = val.CurrentPrice
+		}
 
 		// Aggregate data
 		coinData := CoinData{
@@ -114,11 +129,11 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 		// Send data
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			finalErr = ctx.Err()
+			return
 		case dataChannel <- coinData:
 		}
 
-		return nil
 	})
 }
 
@@ -133,10 +148,19 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 	// Set Default Interval to 1 day
 	i := "d1"
 
-	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func() error {
+	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
+		var finalErr error = nil
+
+		defer func() {
+			if finalErr != nil {
+				errChan <- finalErr
+			}
+		}()
+
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			finalErr = ctx.Err()
+			return
 		case interval := <-intervalChannel:
 			// Update interval
 			i = interval
@@ -150,20 +174,23 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		// Create Request
 		req, err := http.NewRequestWithContext(ctx, method, url, nil)
 		if err != nil {
-			return err
+			finalErr = err
+			return
 		}
 
 		// Send Request
 		res, err := client.Do(req)
 		if err != nil {
-			return err
+			finalErr = err
+			return
 		}
 		defer res.Body.Close()
 
 		// Read response
 		err = json.NewDecoder(res.Body).Decode(&data)
 		if err != nil {
-			return err
+			finalErr = err
+			return
 		}
 
 		// Aggregate price history
@@ -171,7 +198,8 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		for _, v := range data.Data {
 			p, err := strconv.ParseFloat(v.Price, 64)
 			if err != nil {
-				return err
+				finalErr = err
+				return
 			}
 
 			price = append(price, p)
@@ -197,59 +225,130 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 		// Send Data
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			finalErr = ctx.Err()
+			return
 		case dataChannel <- coinData:
 		}
-
-		return nil
 	})
 }
 
 // GetCoinAsset fetches asset data for a coin specified by id
 // and sends the data on dataChannel
 func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) error {
-	url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/", id)
-	method := "GET"
-
 	// Init client
-	client := &http.Client{}
+	geckoClient := gecko.NewClient(nil)
+	localization := false
+	tickers := false
+	marketData := true
+	communityData := false
+	developerData := false
+	sparkline := false
 
-	// Create Request
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
-	if err != nil {
-		return err
-	}
+	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
+		var finalErr error = nil
 
-	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func() error {
-		data := CoinAsset{}
+		defer func() {
+			if finalErr != nil {
+				errChan <- finalErr
+			}
+		}()
 
-		// Send Request
-		res, err := client.Do(req)
+		coinData, err := geckoClient.CoinsID(id, localization, tickers, marketData, communityData, developerData, sparkline)
 		if err != nil {
-			return err
+			finalErr = err
+			return
 		}
-		defer res.Body.Close()
 
-		// Read response
-		err = json.NewDecoder(res.Body).Decode(&data)
+		explorerLinks := [][]string{}
+
+		for key, val := range *coinData.Links {
+			if key == "blockchain_site" {
+				sites := val.([]interface{})
+				for _, site := range sites {
+					siteStr := site.(string)
+					if siteStr != "" {
+						explorerLinks = append(explorerLinks, []string{siteStr})
+					}
+				}
+			}
+		}
+
+		totalSupply := 0.0
+		if coinData.MarketData.TotalSupply != nil {
+			totalSupply = *coinData.MarketData.TotalSupply
+		}
+
+		changePercents := [][]string{
+			{"24H", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage24h)},
+			{"7D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage7d)},
+			{"14D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage14d)},
+			{"30D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage30d)},
+			{"60D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage60d)},
+			{"200D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage200d)},
+			{"1Y", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage1y)},
+		}
+
+		for i, row := range changePercents {
+			change := row[1]
+			if string(change[0]) == "-" {
+				change = DOWN_ARROW + " " + change[1:]
+			} else {
+				change = UP_ARROW + " " + change
+			}
+			changePercents[i][1] = change
+		}
+
+		timeLayout := "2006-01-02T15:04:05.000Z"
+		tATHDate, err := time.Parse(timeLayout, coinData.MarketData.ATHDate["usd"])
 		if err != nil {
-			return err
+			finalErr = err
+			return
+		}
+
+		tATLDate, err := time.Parse(timeLayout, coinData.MarketData.ATLDate["usd"])
+		if err != nil {
+			finalErr = err
+			return
+		}
+
+		tUpdate, err := time.Parse(timeLayout, coinData.LastUpdated)
+		if err != nil {
+			finalErr = err
+			return
+		}
+
+		data := CoinDetails{
+			Name:           coinData.Name,
+			Symbol:         strings.ToUpper(coinData.Symbol),
+			Rank:           fmt.Sprintf("%d", coinData.MarketCapRank),
+			BlockTime:      fmt.Sprintf("%d", coinData.BlockTimeInMin),
+			MarketCap:      coinData.MarketData.MarketCap["usd"],
+			Website:        "",
+			Explorers:      explorerLinks,
+			ATH:            coinData.MarketData.ATH["usd"],
+			ATHDate:        tATHDate.Format(time.RFC822),
+			ATL:            coinData.MarketData.ATL["usd"],
+			ATLDate:        tATLDate.Format(time.RFC822),
+			TotalVolume:    coinData.MarketData.TotalVolume["usd"],
+			ChangePercents: changePercents,
+			TotalSupply:    totalSupply,
+			CurrentSupply:  coinData.MarketData.CirculatingSupply,
+			LastUpdate:     tUpdate.Format(time.RFC822),
 		}
 
 		// Aggregate data
-		coinData := CoinData{
-			Type:          "ASSET",
-			CoinAssetData: data,
+		CoinDetails := CoinData{
+			Type:    "DETAILS",
+			Details: data,
 		}
 
 		// Send data
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		case dataChannel <- coinData:
+			finalErr = ctx.Err()
+			return
+		case dataChannel <- CoinDetails:
 		}
-
-		return nil
 	})
 }
 
@@ -265,18 +364,33 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 
 	msg := make(map[string]string)
 
-	return utils.LoopTick(ctx, time.Duration(100*time.Millisecond), func() error {
-		err := c.ReadJSON(&msg)
+	return utils.LoopTick(ctx, time.Duration(100*time.Millisecond), func(errChan chan error) {
+		var finalErr error = nil
+
+		// Defer panic recovery for closed websocket
+		defer func() {
+			if e := recover(); e != nil {
+				finalErr = fmt.Errorf("socket read error")
+			}
+		}()
+
+		defer func() {
+			if finalErr != nil {
+				errChan <- finalErr
+			}
+		}()
+
+		err = c.ReadJSON(&msg)
 		if err != nil {
-			return err
+			finalErr = err
+			return
 		}
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			finalErr = ctx.Err()
+			return
 		case dataChannel <- msg[id]:
 		}
-
-		return nil
 	})
 }
