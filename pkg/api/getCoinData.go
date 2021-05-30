@@ -22,11 +22,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/gorilla/websocket"
+	gecko "github.com/superoo7/go-gecko/v3"
+	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
 
 // API Documentation can be found at https://docs.coincap.io/
@@ -53,15 +55,19 @@ type CoinAsset struct {
 // GetFavouritePrices gets coin prices for coins specified by favourites.
 // This data is returned on the dataChannel.
 func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataChannel chan CoinData) error {
-	method := "GET"
 
 	// Init Client
-	client := &http.Client{}
+	geckoClient := gecko.NewClient(nil)
 
-	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func(errChan chan error) {
+	// Set Parameters
+	vsCurrency := "usd"
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	page := 1
+	sparkline := true
+	priceChangePercentage := []string{}
 
-		var wg sync.WaitGroup
-		var m sync.Mutex
+	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
+
 		var finalErr error
 
 		favouriteData := make(map[string]float64)
@@ -72,60 +78,24 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 			}
 		}()
 
-		// Iterate over favorite coins
+		IDs := []string{}
+
 		for id := range favourites {
-			wg.Add(1)
-			go func(id string, wg *sync.WaitGroup, m *sync.Mutex) {
-
-				price := 0.0
-				data := CoinAsset{}
-
-				// In case errorred in later stages, below deferred function call
-				// is done to make sure coin does not vanish from favourites
-				defer func() {
-					m.Lock()
-					favouriteData[data.Data.Symbol] = price
-					m.Unlock()
-				}()
-
-				defer wg.Done()
-
-				url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s", id)
-
-				// Create Request
-				req, err := http.NewRequestWithContext(ctx, method, url, nil)
-				if err != nil {
-					finalErr = err
-					return
-				}
-
-				// Send Request
-				res, err := client.Do(req)
-				if err != nil {
-					finalErr = err
-					return
-				}
-				defer res.Body.Close()
-
-				// Read response
-				err = json.NewDecoder(res.Body).Decode(&data)
-				if err != nil {
-					finalErr = err
-					return
-				}
-
-				// Get price
-				price, err = strconv.ParseFloat(data.Data.PriceUsd, 64)
-				if err != nil {
-					price = 0
-					finalErr = err
-					return
-				}
-
-			}(id, &wg, &m)
+			IDs = append(IDs, id)
 		}
 
-		wg.Wait()
+		perPage := len(IDs)
+
+		coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, IDs, order, perPage, page, sparkline, priceChangePercentage)
+		if err != nil {
+			finalErr = err
+			return
+		}
+
+		for _, val := range *coinDataPointer {
+			symbol := strings.ToUpper(val.Symbol)
+			favouriteData[symbol] = val.CurrentPrice
+		}
 
 		// Aggregate data
 		coinData := CoinData{
