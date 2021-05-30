@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
@@ -102,24 +101,6 @@ func GetTopNCoinsFromCoinGecko(n int) (geckoTypes.CoinsMarket, error) {
 	return coinData, nil
 }
 
-func GetTopNCoinIdsFromCoinGecko(n int) (map[int][]string, error) {
-
-	coinData, err := GetTopNCoinsFromCoinGecko(n)
-	if err != nil {
-		return nil, err
-	}
-
-	data := make(map[int][]string)
-
-	for i := 0; i < n; i += 1 {
-		coinId := coinData[i].ID
-		coinName := coinData[i].Name
-		data[i] = []string{coinId, coinName}
-	}
-
-	return data, nil
-}
-
 func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duration string) float64 {
 
 	m := map[string]*float64{
@@ -188,8 +169,16 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
 	// Init Client
-	client := &http.Client{}
-	geckoClient := gecko.NewClient(client)
+	geckoClient := gecko.NewClient(nil)
+
+	// Set Parameters
+	vsCurrency := "usd"
+	ids := []string{}
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	perPage := 3
+	page := 1
+	sparkline := true
+	priceChangePercentage := []string{}
 
 	return utils.LoopTick(ctx, time.Duration(1)*time.Minute, func(errChan chan error) {
 		var finalErr error = nil
@@ -203,7 +192,8 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 
 		if *sendData {
 
-			topIDs, err := GetTopNCoinIdsFromCoinGecko(3)
+			coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
+
 			if err != nil {
 				finalErr = err
 				return
@@ -214,53 +204,17 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			maxPrices := make([]float64, 3)
 			minPrices := make([]float64, 3)
 
-			var wg sync.WaitGroup
-			var m sync.Mutex
+			for i, val := range *coinDataPointer {
+				topCoins[i] = val.Name
+				topCoinData[i] = val.SparklineIn7d.Price
+				maxPrices[i] = utils.MaxFloat64(topCoinData[i]...)
+				minPrices[i] = utils.MinFloat64(topCoinData[i]...)
 
-			for i, coin := range topIDs {
-				id := coin[0]
-				name := coin[1]
-
-				wg.Add(1)
-
-				go func(id, name string, index int, wg *sync.WaitGroup, m *sync.Mutex) {
-					defer wg.Done()
-					data, err := geckoClient.CoinsIDMarketChart(id, "usd", "7")
-					if err != nil {
-						finalErr = err
-						return
-					}
-
-					price := []float64{}
-					prices := *data.Prices
-					max := float64(prices[0][1])
-					min := float64(prices[1][1])
-					for _, val := range *data.Prices {
-						p := float64(val[1])
-						if p > max {
-							max = p
-						}
-						if p < min {
-							min = p
-						}
-						price = append(price, p)
-					}
-
-					// Clean prices
-					for i, val := range price {
-						price[i] = val - min
-					}
-
-					m.Lock()
-					maxPrices[index] = max
-					minPrices[index] = min
-					topCoinData[index] = price
-					topCoins[index] = name
-					m.Unlock()
-				}(id, name, i, &wg, &m)
+				// Clean data for graph
+				for index := range topCoinData[i] {
+					topCoinData[i][index] -= minPrices[i]
+				}
 			}
-
-			wg.Wait()
 
 			// Aggregate data
 			data.MaxPrices = maxPrices
