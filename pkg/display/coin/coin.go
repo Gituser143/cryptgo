@@ -440,6 +440,9 @@ func DisplayCoin(
 				myPage.SupplyChart.Data = supplyVals
 				myPage.SupplyChart.Title = fmt.Sprintf(" Supply (%s) ", units)
 
+				// Get Explorers
+				myPage.ExplorerTable.Rows = data.Details.Explorers
+
 			}
 
 			// Sort favourites table

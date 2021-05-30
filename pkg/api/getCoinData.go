@@ -63,7 +63,7 @@ type CoinDetails struct {
 	BlockTime      string
 	MarketCap      float64
 	Website        string
-	Explorers      []string
+	Explorers      [][]string
 	ATH            float64
 	ATHDate        string
 	ATL            float64
@@ -259,6 +259,20 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			return
 		}
 
+		explorerLinks := [][]string{}
+
+		for key, val := range *coinData.Links {
+			if key == "blockchain_site" {
+				sites := val.([]interface{})
+				for _, site := range sites {
+					siteStr := site.(string)
+					if siteStr != "" {
+						explorerLinks = append(explorerLinks, []string{siteStr})
+					}
+				}
+			}
+		}
+
 		totalSupply := 0.0
 		if coinData.MarketData.TotalSupply != nil {
 			totalSupply = *coinData.MarketData.TotalSupply
@@ -310,7 +324,7 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			BlockTime:      fmt.Sprintf("%d", coinData.BlockTimeInMin),
 			MarketCap:      coinData.MarketData.MarketCap["usd"],
 			Website:        "",
-			Explorers:      []string{},
+			Explorers:      explorerLinks,
 			ATH:            coinData.MarketData.ATH["usd"],
 			ATHDate:        tATHDate.Format(time.RFC822),
 			ATL:            coinData.MarketData.ATL["usd"],
