@@ -84,8 +84,8 @@ func (page *CoinPage) InitCoin() {
 	page.DetailsTable.ColResizer = func() {
 		x := page.DetailsTable.Inner.Dx()
 		page.DetailsTable.ColWidths = []int{
-			x / 2,
-			x / 2,
+			4 * x / 10,
+			6 * x / 10,
 		}
 	}
 	page.DetailsTable.CursorColor = ui.ColorCyan

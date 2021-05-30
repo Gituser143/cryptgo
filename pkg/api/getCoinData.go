@@ -37,19 +37,37 @@ import (
 // This is used to serve per coin details.
 // It additionally holds a map of favourite coins.
 type CoinData struct {
-	Type          string
-	PriceHistory  []float64
-	MinPrice      float64
-	MaxPrice      float64
-	CoinAssetData CoinAsset
-	Price         string
-	Favourites    map[string]float64
+	Type         string
+	PriceHistory []float64
+	MinPrice     float64
+	MaxPrice     float64
+	Details      CoinDetails
+	Favourites   map[string]float64
 }
 
 // CoinAsset holds Asset data for a single coin
 type CoinAsset struct {
 	Data      Asset `json:"data"`
 	TimeStamp uint  `json:"timestamp"`
+}
+
+type CoinDetails struct {
+	Name           string
+	Symbol         string
+	Rank           string
+	BlockTime      string
+	MarketCap      string
+	Website        string
+	Explorers      []string
+	ATH            string
+	ATHDate        string
+	ATL            string
+	ATLDate        string
+	TotalVolume    string
+	ChangePercents [][]string
+	TotalSupply    float64
+	CurrentSupply  float64
+	LastUpdate     string
 }
 
 // GetFavouritePrices gets coin prices for coins specified by favourites.
@@ -212,20 +230,16 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 // GetCoinAsset fetches asset data for a coin specified by id
 // and sends the data on dataChannel
 func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) error {
-	url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/", id)
-	method := "GET"
-
 	// Init client
-	client := &http.Client{}
-
-	// Create Request
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
-	if err != nil {
-		return err
-	}
+	geckoClient := gecko.NewClient(nil)
+	localization := false
+	tickers := false
+	marketData := true
+	communityData := false
+	developerData := false
+	sparkline := false
 
 	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
-		data := CoinAsset{}
 		var finalErr error = nil
 
 		defer func() {
@@ -234,25 +248,43 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			}
 		}()
 
-		// Send Request
-		res, err := client.Do(req)
+		coinData, err := geckoClient.CoinsID(id, localization, tickers, marketData, communityData, developerData, sparkline)
 		if err != nil {
 			finalErr = err
 			return
 		}
-		defer res.Body.Close()
 
-		// Read response
-		err = json.NewDecoder(res.Body).Decode(&data)
-		if err != nil {
-			finalErr = err
-			return
+		data := CoinDetails{
+			Name:        coinData.Name,
+			Symbol:      strings.ToUpper(coinData.Symbol),
+			Rank:        fmt.Sprintf("%d", coinData.MarketCapRank),
+			BlockTime:   fmt.Sprintf("%d", coinData.BlockTimeInMin),
+			MarketCap:   fmt.Sprintf("%f", coinData.MarketData.MarketCap["usd"]),
+			Website:     "",
+			Explorers:   []string{},
+			ATH:         fmt.Sprintf("%f", coinData.MarketData.ATH["usd"]),
+			ATHDate:     coinData.MarketData.ATHDate["usd"],
+			ATL:         fmt.Sprintf("%f", coinData.MarketData.ATL["usd"]),
+			ATLDate:     coinData.MarketData.ATLDate["usd"],
+			TotalVolume: fmt.Sprintf("%f", coinData.MarketData.TotalVolume["usd"]),
+			ChangePercents: [][]string{
+				{"24H", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage24h)},
+				{"7D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage7d)},
+				{"14D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage14d)},
+				{"30D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage30d)},
+				{"60D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage60d)},
+				{"200D", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage200d)},
+				{"1Y", fmt.Sprintf("%f", coinData.MarketData.PriceChangePercentage1y)},
+			},
+			TotalSupply:   *coinData.MarketData.TotalSupply,
+			CurrentSupply: coinData.MarketData.CirculatingSupply,
+			LastUpdate:    coinData.LastUpdated,
 		}
 
 		// Aggregate data
-		coinData := CoinData{
-			Type:          "ASSET",
-			CoinAssetData: data,
+		CoinDetails := CoinData{
+			Type:    "DETAILS",
+			Details: data,
 		}
 
 		// Send data
@@ -260,7 +292,7 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 		case <-ctx.Done():
 			finalErr = ctx.Err()
 			return
-		case dataChannel <- coinData:
+		case dataChannel <- CoinDetails:
 		}
 	})
 }

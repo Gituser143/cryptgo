@@ -398,60 +398,31 @@ func DisplayCoin(
 				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", data.MaxPrice/currencyVal, currency)
 				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", data.MinPrice/currencyVal, currency)
 
-			case "ASSET":
+			case "DETAILS":
 				// Update Details table
-				myPage.DetailsTable.Header = []string{"Name", data.CoinAssetData.Data.Name}
-
-				// Get Market Cap
-				mCapStr := ""
-				mCap, err := strconv.ParseFloat(data.CoinAssetData.Data.MarketCapUsd, 64)
-				if err == nil {
-					mCapVals, units := utils.RoundValues(mCap/currencyVal, 0)
-					mCapStr = fmt.Sprintf("%.2f %s %s", mCapVals[0], units, currency)
-				}
-
-				// Get Volume Weighted Average price
-				vwapStr := ""
-				vwap, err := strconv.ParseFloat(data.CoinAssetData.Data.Vwap24Hr, 64)
-				if err == nil {
-					vwapStr = fmt.Sprintf("%.2f %s", vwap/currencyVal, currency)
-				}
-
-				// Get 24 Hr Volume
-				vol, volErr := strconv.ParseFloat(data.CoinAssetData.Data.VolumeUsd24Hr, 64)
-				volStr := ""
-				if volErr == nil {
-					vals, units := utils.RoundValues(vol/currencyVal, 0)
-					volStr = fmt.Sprintf("%.2f %s %s", vals[0], units, currency)
-				}
-
-				// Aggregate data
+				myPage.DetailsTable.Header = []string{"Name", data.Details.Name}
 				rows := [][]string{
-					{"Symbol", data.CoinAssetData.Data.Symbol},
-					{"Rank", data.CoinAssetData.Data.Rank},
-					{"Market Cap", mCapStr},
-					{"VWAP 24Hr", vwapStr},
-					{"Explorer", data.CoinAssetData.Data.Explorer},
-					{"Volume Used 24 Hr", volStr},
-				}
-
-				// Update value label in history graph
-				p, err := strconv.ParseFloat(data.CoinAssetData.Data.PriceUsd, 64)
-				if err == nil {
-					myPage.ValueGraph.Labels["Value"] = fmt.Sprintf("%.2f %s", p/currencyVal, currency)
+					{"Symbol", data.Details.Symbol},
+					{"Rank", data.Details.Rank},
+					{"BlockTime (min)", data.Details.BlockTime},
+					{"MarketCap", data.Details.MarketCap},
+					{"ATH", data.Details.ATH},
+					{"ATHDate", data.Details.ATHDate},
+					{"ATL", data.Details.ATL},
+					{"ATLDate", data.Details.ATLDate},
+					{"TotalVolume", data.Details.TotalVolume},
+					{"LastUpdate", data.Details.LastUpdate},
 				}
 
 				myPage.DetailsTable.Rows = rows
 
 				// Get supply and Max supply
-				supply, err1 := strconv.ParseFloat(data.CoinAssetData.Data.Supply, 64)
-				maxSupply, err2 := strconv.ParseFloat(data.CoinAssetData.Data.MaxSupply, 64)
+				supply := data.Details.CurrentSupply
+				maxSupply := data.Details.TotalSupply
 
-				if err1 == nil && err2 == nil {
-					supplyVals, units := utils.RoundValues(supply, maxSupply)
-					myPage.SupplyChart.Data = supplyVals
-					myPage.SupplyChart.Title = fmt.Sprintf(" Supply (%s) ", units)
-				}
+				supplyVals, units := utils.RoundValues(supply, maxSupply)
+				myPage.SupplyChart.Data = supplyVals
+				myPage.SupplyChart.Title = fmt.Sprintf(" Supply (%s) ", units)
 
 			}
 
