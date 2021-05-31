@@ -18,10 +18,7 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -140,13 +137,22 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 // GetCoinHistory gets price history of a coin specified by id, for an interval
 // received through the interval channel.
 func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string, dataChannel chan CoinData) error {
-	method := "GET"
 
-	// Init Client
-	client := &http.Client{}
+	intervalToDuration := map[string]string{
+		"24hr": "1",
+		"7d":   "7",
+		"14d":  "14",
+		"30d":  "30",
+		"90d":  "90",
+		"180d": "180",
+		"1yr":  "365",
+		"5yr":  "1825",
+	}
 
 	// Set Default Interval to 1 day
-	i := "d1"
+	i := "24hr"
+
+	geckoClient := gecko.NewClient(nil)
 
 	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
 		var finalErr error = nil
@@ -168,26 +174,8 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 			break
 		}
 
-		url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=%s", id, i)
-		data := CoinHistory{}
-
-		// Create Request
-		req, err := http.NewRequestWithContext(ctx, method, url, nil)
-		if err != nil {
-			finalErr = err
-			return
-		}
-
-		// Send Request
-		res, err := client.Do(req)
-		if err != nil {
-			finalErr = err
-			return
-		}
-		defer res.Body.Close()
-
-		// Read response
-		err = json.NewDecoder(res.Body).Decode(&data)
+		intervalDuration := intervalToDuration[i]
+		data, err := geckoClient.CoinsIDMarketChart(id, "usd", intervalDuration)
 		if err != nil {
 			finalErr = err
 			return
@@ -195,14 +183,9 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 
 		// Aggregate price history
 		price := []float64{}
-		for _, v := range data.Data {
-			p, err := strconv.ParseFloat(v.Price, 64)
-			if err != nil {
-				finalErr = err
-				return
-			}
 
-			price = append(price, p)
+		for _, v := range *data.Prices {
+			price = append(price, float64(v[1]))
 		}
 
 		// Set max and min
