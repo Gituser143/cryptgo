@@ -138,18 +138,19 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 // received through the interval channel.
 func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string, dataChannel chan CoinData) error {
 
-	intervalToDuration := map[string]float64{
-		"5min":  300,
-		"15min": 900,
-		"1hr":   3600,
-		"2hr":   7200,
-		"6hr":   21600,
-		"12hr":  43200,
-		"1d":    86400,
+	intervalToDuration := map[string]string{
+		"24hr": "1",
+		"7d":   "7",
+		"14d":  "14",
+		"30d":  "30",
+		"90d":  "90",
+		"180d": "180",
+		"1yr":  "365",
+		"5yr":  "1825",
 	}
 
 	// Set Default Interval to 1 day
-	i := "1d"
+	i := "24hr"
 
 	geckoClient := gecko.NewClient(nil)
 
@@ -173,30 +174,18 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 			break
 		}
 
-		var intervalDuration float64 = intervalToDuration[i]
-		days := "1"
-
-		if intervalDuration <= 1800 {
-			days = "1"
-		} else if intervalDuration <= 43200 {
-			days = "90"
-		} else {
-			days = "360"
+		intervalDuration := intervalToDuration[i]
+		data, err := geckoClient.CoinsIDMarketChart(id, "usd", intervalDuration)
+		if err != nil {
+			finalErr = err
+			return
 		}
-
-		data, _ := geckoClient.CoinsIDMarketChart(id, "usd", days)
-
-		intervalDuration = intervalDuration * 1000
 
 		// Aggregate price history
 		price := []float64{}
-		var startTimeStamp float64 = 0
 
 		for _, v := range *data.Prices {
-			if float64(v[0])-startTimeStamp > intervalDuration {
-				startTimeStamp = float64(v[0])
-				price = append(price, float64(v[1]))
-			}
+			price = append(price, float64(v[1]))
 		}
 
 		// Set max and min

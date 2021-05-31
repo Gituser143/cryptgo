@@ -21,16 +21,17 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-var rows [][]string = [][]string{{"5 Minutes"}, {"15 Minutes"}, {"1 Hour"}, {"2 Hours"}, {"6 Hours"}, {"12 Hours"}, {"1 Day"}}
+var rows [][]string = [][]string{{"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"90 Days"}, {"180 Days"}, {"1 Year"}, {"5 Years"}}
 
 var DurationMap map[string]string = map[string]string{
-	"5 Minutes":  "5min",
-	"15 Minutes": "15min",
-	"1 Hour":     "1hr",
-	"2 Hours":    "2hr",
-	"6 Hours":    "6hr",
-	"12 Hours":   "12hr",
-	"1 Day":      "1d",
+	"24 Hours": "24hr",
+	"7 Days":   "7d",
+	"14 Days":  "14d",
+	"30 Days":  "30d",
+	"90 Days":  "90d",
+	"180 Days": "180d",
+	"1 Year":   "1yr",
+	"5 Year":   "5yr",
 }
 
 type ChangeIntervalDurationTable struct {
@@ -42,7 +43,7 @@ func NewChangeIntervalPage() *ChangeIntervalDurationTable {
 		Table: widgets.NewTable(),
 	}
 
-	c.Table.Title = " Select Duration for Graph Interval"
+	c.Table.Title = " Select Duration for Coin History Interval"
 	c.Table.Header = []string{"Duration"}
 	c.Table.Rows = rows
 	c.Table.CursorColor = ui.ColorCyan
