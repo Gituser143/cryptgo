@@ -31,7 +31,7 @@ var DurationMap map[string]string = map[string]string{
 	"90 Days":  "90d",
 	"180 Days": "180d",
 	"1 Year":   "1yr",
-	"5 Year":   "5yr",
+	"5 Years":  "5yr",
 }
 
 type ChangeIntervalDurationTable struct {
