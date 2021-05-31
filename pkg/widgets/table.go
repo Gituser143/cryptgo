@@ -53,8 +53,9 @@ type Table struct {
 	UniqueCol    int    // the column used to uniquely identify each table row
 	SelectedItem string // used to keep the cursor on the correct item if the data changes
 	SelectedRow  int
-	TopRow       int          // used to indicate where in the table we are scrolled at
-	ChangeCol    map[int]bool // Used to set if a column represents change
+	TopRow       int              // used to indicate where in the table we are scrolled at
+	ChangeCol    map[int]bool     // Used to set if a column represents change
+	ColColor     map[int]ui.Color // Set a custom colour to a column
 	ColResizer   func()
 
 	IsHelp bool
@@ -71,6 +72,7 @@ func NewTable() *Table {
 		UniqueCol:   0,
 		ColResizer:  func() {},
 		ChangeCol:   make(map[int]bool),
+		ColColor:    make(map[int]ui.Color),
 		CursorColor: ui.ColorCyan,
 	}
 }
@@ -159,6 +161,12 @@ func (t *Table) Draw(buf *ui.Buffer) {
 					if string(rowData[0]) == DOWN_ARROW {
 						style.Fg = ui.ColorRed
 					}
+				}
+			} else if val, ok := t.ColColor[i]; ok {
+				if rowNum == t.SelectedRow && t.ShowCursor {
+					style.Fg = t.CursorColor
+				} else {
+					style.Fg = val
 				}
 			}
 			if width == 0 {

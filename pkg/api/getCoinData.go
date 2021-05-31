@@ -65,6 +65,8 @@ type CoinDetails struct {
 	ATHDate        string
 	ATL            float64
 	ATLDate        string
+	High24         float64
+	Low24          float64
 	TotalVolume    float64
 	ChangePercents [][]string
 	TotalSupply    float64
@@ -312,6 +314,8 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			ATHDate:        tATHDate.Format(time.RFC822),
 			ATL:            coinData.MarketData.ATL["usd"],
 			ATLDate:        tATLDate.Format(time.RFC822),
+			High24:         coinData.MarketData.High24["usd"],
+			Low24:          coinData.MarketData.Low24["usd"],
 			TotalVolume:    coinData.MarketData.TotalVolume["usd"],
 			ChangePercents: changePercents,
 			TotalSupply:    totalSupply,

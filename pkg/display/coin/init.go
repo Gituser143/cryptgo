@@ -19,7 +19,6 @@ package coin
 import (
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
-	w "github.com/gizak/termui/v3/widgets"
 )
 
 // CoinPage holds UI items for a coin page
@@ -29,7 +28,7 @@ type CoinPage struct {
 	ValueGraph      *widgets.LineGraph
 	DetailsTable    *widgets.Table
 	ChangesTable    *widgets.Table
-	PriceBox        *w.List
+	PriceBox        *widgets.Table
 	ExplorerTable   *widgets.Table
 	SupplyChart     *widgets.BarChart
 }
@@ -42,7 +41,7 @@ func NewCoinPage() *CoinPage {
 		ValueGraph:      widgets.NewLineGraph(),
 		DetailsTable:    widgets.NewTable(),
 		ChangesTable:    widgets.NewTable(),
-		PriceBox:        w.NewList(),
+		PriceBox:        widgets.NewTable(),
 		ExplorerTable:   widgets.NewTable(),
 		SupplyChart:     widgets.NewBarChart(),
 	}
@@ -88,7 +87,6 @@ func (page *CoinPage) InitCoin() {
 			6 * x / 10,
 		}
 	}
-	page.DetailsTable.CursorColor = ui.ColorCyan
 
 	// Initialise Change Table
 	page.ChangesTable.Title = " Changes "
@@ -109,6 +107,18 @@ func (page *CoinPage) InitCoin() {
 	page.PriceBox.Title = " Live Price "
 	page.PriceBox.BorderStyle.Fg = ui.ColorCyan
 	page.PriceBox.TitleStyle.Fg = ui.ColorClear
+	page.PriceBox.Header = []string{"Price", "24H High", "24H Low"}
+	page.PriceBox.ColResizer = func() {
+		x := page.PriceBox.Inner.Dx()
+		page.PriceBox.ColWidths = []int{
+			4 * x / 10,
+			3 * x / 10,
+			3 * x / 10,
+		}
+	}
+	page.PriceBox.Rows = [][]string{{"", "", ""}}
+	page.PriceBox.ColColor[1] = ui.ColorGreen
+	page.PriceBox.ColColor[2] = ui.ColorRed
 
 	// Initialise Explorer Table
 	page.ExplorerTable.Title = " Explorers "
@@ -119,6 +129,7 @@ func (page *CoinPage) InitCoin() {
 		x := page.ExplorerTable.Inner.Dx()
 		page.ExplorerTable.ColWidths = []int{x}
 	}
+	page.ExplorerTable.CursorColor = ui.ColorCyan
 
 	// Initalise Bar Graph
 	page.SupplyChart.Title = " Supply "
@@ -142,8 +153,8 @@ func (page *CoinPage) InitCoin() {
 			ui.NewRow(0.5, page.ValueGraph),
 			ui.NewRow(0.5,
 				ui.NewCol(0.5,
-					ui.NewRow(0.3, page.PriceBox),
-					ui.NewRow(0.7, page.ChangesTable),
+					ui.NewRow(0.4, page.PriceBox),
+					ui.NewRow(0.6, page.ChangesTable),
 				),
 				ui.NewCol(0.5,
 					ui.NewRow(0.5, page.ExplorerTable),

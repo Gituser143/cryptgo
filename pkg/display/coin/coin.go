@@ -61,7 +61,7 @@ func DisplayCoin(
 	changeIntervalWidget := changeIntervalPackage.NewChangeIntervalPage()
 
 	// Selection of default table
-	selectedTable := myPage.DetailsTable
+	selectedTable := myPage.ExplorerTable
 	selectedTable.ShowCursor = true
 
 	previousKey := ""
@@ -189,7 +189,7 @@ func DisplayCoin(
 			case "F":
 				if !helpSelected && !portfolioSelected && !selectCurrency && !changeIntervalSelected {
 					selectedTable.ShowCursor = false
-					selectedTable = myPage.DetailsTable
+					selectedTable = myPage.ExplorerTable
 				}
 
 			case "P":
@@ -372,29 +372,28 @@ func DisplayCoin(
 
 					}
 				} else {
-					myPage.DetailsTable.ShowCursor = true
 
 					switch e.ID {
 					case "j", "<Down>":
-						myPage.DetailsTable.ScrollDown()
+						myPage.ExplorerTable.ScrollDown()
 					case "k", "<Up>":
-						myPage.DetailsTable.ScrollUp()
+						myPage.ExplorerTable.ScrollUp()
 					case "<C-d>":
-						myPage.DetailsTable.ScrollHalfPageDown()
+						myPage.ExplorerTable.ScrollHalfPageDown()
 					case "<C-u>":
-						myPage.DetailsTable.ScrollHalfPageUp()
+						myPage.ExplorerTable.ScrollHalfPageUp()
 					case "<C-f>":
-						myPage.DetailsTable.ScrollPageDown()
+						myPage.ExplorerTable.ScrollPageDown()
 					case "<C-b>":
-						myPage.DetailsTable.ScrollPageUp()
+						myPage.ExplorerTable.ScrollPageUp()
 					case "g":
 						if previousKey == "g" {
-							myPage.DetailsTable.ScrollTop()
+							myPage.ExplorerTable.ScrollTop()
 						}
 					case "<Home>":
-						myPage.DetailsTable.ScrollTop()
+						myPage.ExplorerTable.ScrollTop()
 					case "G", "<End>":
-						myPage.DetailsTable.ScrollBottom()
+						myPage.ExplorerTable.ScrollBottom()
 					}
 				}
 
@@ -410,9 +409,8 @@ func DisplayCoin(
 			// Update live price
 			p, _ := strconv.ParseFloat(data, 64)
 			if !helpSelected && !portfolioSelected && !selectCurrency && !changeIntervalSelected {
-				myPage.PriceBox.Rows = []string{
-					fmt.Sprintf("%.2f %s", p/currencyVal, currency),
-				}
+				myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f", p/currencyVal)
+
 				if !selectCurrency && !helpSelected && !portfolioSelected {
 					ui.Render(myPage.PriceBox)
 				}
@@ -437,6 +435,9 @@ func DisplayCoin(
 
 				// Set value, min 7 max price
 				myPage.ValueGraph.Data["Value"] = price
+				value := (price[len(price)-1] + data.MinPrice) / currencyVal
+
+				myPage.ValueGraph.Labels["Value"] = fmt.Sprintf("%.2f %s", value, currency)
 				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", data.MaxPrice/currencyVal, currency)
 				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", data.MinPrice/currencyVal, currency)
 
@@ -470,6 +471,11 @@ func DisplayCoin(
 				}
 
 				myPage.DetailsTable.Rows = rows
+
+				// Update 24 High/Low
+				myPage.PriceBox.Rows[0][1] = fmt.Sprintf("%.2f", data.Details.High24/currencyVal)
+				myPage.PriceBox.Rows[0][2] = fmt.Sprintf("%.2f", data.Details.Low24/currencyVal)
+				myPage.PriceBox.Title = fmt.Sprintf(" Live Price (%s) ", currency)
 
 				// Get Change Percents
 				myPage.ChangesTable.Rows = data.Details.ChangePercents
