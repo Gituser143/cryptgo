@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
+	changeIntervalPackage "github.com/Gituser143/cryptgo/pkg/display/changeInterval"
 	c "github.com/Gituser143/cryptgo/pkg/display/currency"
 	"github.com/Gituser143/cryptgo/pkg/display/portfolio"
 	"github.com/Gituser143/cryptgo/pkg/utils"
@@ -55,6 +56,9 @@ func DisplayCoin(
 	currencyVal := 1.0
 	selectCurrency := false
 	currencyWidget := c.NewCurrencyPage()
+
+	changeIntervalSelected := false
+	changeIntervalWidget := changeIntervalPackage.NewChangeIntervalPage()
 
 	// Selection of default table
 	selectedTable := myPage.DetailsTable
@@ -120,6 +124,9 @@ func DisplayCoin(
 		} else if selectCurrency {
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
+		} else if changeIntervalSelected {
+			changeIntervalWidget.Resize(w, h)
+			ui.Render(changeIntervalWidget)
 		} else {
 			ui.Render(myPage.Grid)
 		}
@@ -154,33 +161,39 @@ func DisplayCoin(
 				updateUI()
 
 			case "c":
-				if !helpSelected && !portfolioSelected {
+				if !helpSelected && !portfolioSelected && !changeIntervalSelected {
 					selectCurrency = true
 					currencyWidget.UpdateRows()
 					updateUI()
 				}
 
 			case "C":
-				if !helpSelected && !portfolioSelected {
+				if !helpSelected && !portfolioSelected && !changeIntervalSelected {
 					selectCurrency = true
 					currencyWidget.UpdateAll()
 				}
 				updateUI()
 
-			case "f":
+			case "d":
 				if !helpSelected && !portfolioSelected && !selectCurrency {
+					changeIntervalSelected = true
+					updateUI()
+				}
+
+			case "f":
+				if !helpSelected && !portfolioSelected && !selectCurrency && !changeIntervalSelected {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.FavouritesTable
 				}
 
 			case "F":
-				if !helpSelected && !portfolioSelected && !selectCurrency {
+				if !helpSelected && !portfolioSelected && !selectCurrency && !changeIntervalSelected {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.DetailsTable
 				}
 
 			case "P":
-				if !helpSelected && !selectCurrency {
+				if !helpSelected && !selectCurrency && !changeIntervalSelected {
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
 					portfolioSelected = !portfolioSelected
 					updateUI()
@@ -200,6 +213,33 @@ func DisplayCoin(
 				case "k", "<Up>":
 					help.Table.ScrollUp()
 					ui.Render(help)
+				}
+			} else if changeIntervalSelected {
+				switch e.ID {
+				case "?":
+					updateUI()
+				case "<Escape>":
+					changeIntervalSelected = false
+					updateUI()
+				case "j", "<Down>":
+					changeIntervalWidget.Table.ScrollDown()
+					ui.Render(changeIntervalWidget)
+				case "k", "<Up>":
+					changeIntervalWidget.Table.ScrollUp()
+					ui.Render(changeIntervalWidget)
+				case "<Enter>":
+
+					// Update Currency
+					if changeIntervalWidget.SelectedRow < len(changeIntervalWidget.Rows) {
+						row := changeIntervalWidget.Rows[changeIntervalWidget.SelectedRow]
+						changeInterval := changeIntervalPackage.DurationMap[row[0]]
+						myPage.ValueGraph.Data["Value"] = []float64{}
+						intervalChannel <- changeInterval
+					}
+					changeIntervalSelected = false
+				}
+				if changeIntervalSelected {
+					ui.Render(changeIntervalWidget)
 				}
 			} else if portfolioSelected {
 				switch e.ID {
@@ -369,11 +409,13 @@ func DisplayCoin(
 		case data := <-priceChannel:
 			// Update live price
 			p, _ := strconv.ParseFloat(data, 64)
-			myPage.PriceBox.Rows = []string{
-				fmt.Sprintf("%.2f %s", p/currencyVal, currency),
-			}
-			if !selectCurrency && !helpSelected && !portfolioSelected {
-				ui.Render(myPage.PriceBox)
+			if !helpSelected && !portfolioSelected && !selectCurrency && !changeIntervalSelected {
+				myPage.PriceBox.Rows = []string{
+					fmt.Sprintf("%.2f %s", p/currencyVal, currency),
+				}
+				if !selectCurrency && !helpSelected && !portfolioSelected {
+					ui.Render(myPage.PriceBox)
+				}
 			}
 
 		case data := <-dataChannel:

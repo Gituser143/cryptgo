@@ -18,10 +18,7 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -140,13 +137,21 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 // GetCoinHistory gets price history of a coin specified by id, for an interval
 // received through the interval channel.
 func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string, dataChannel chan CoinData) error {
-	method := "GET"
 
-	// Init Client
-	client := &http.Client{}
+	intervalToDuration := map[string]float64{
+		"5min":  300,
+		"15min": 900,
+		"1hr":   3600,
+		"2hr":   7200,
+		"6hr":   21600,
+		"12hr":  43200,
+		"1d":    86400,
+	}
 
 	// Set Default Interval to 1 day
-	i := "d1"
+	i := "1d"
+
+	geckoClient := gecko.NewClient(nil)
 
 	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
 		var finalErr error = nil
@@ -168,41 +173,30 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 			break
 		}
 
-		url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=%s", id, i)
-		data := CoinHistory{}
+		var intervalDuration float64 = intervalToDuration[i]
+		days := "1"
 
-		// Create Request
-		req, err := http.NewRequestWithContext(ctx, method, url, nil)
-		if err != nil {
-			finalErr = err
-			return
+		if intervalDuration <= 1800 {
+			days = "1"
+		} else if intervalDuration <= 43200 {
+			days = "90"
+		} else {
+			days = "360"
 		}
 
-		// Send Request
-		res, err := client.Do(req)
-		if err != nil {
-			finalErr = err
-			return
-		}
-		defer res.Body.Close()
+		data, _ := geckoClient.CoinsIDMarketChart(id, "usd", days)
 
-		// Read response
-		err = json.NewDecoder(res.Body).Decode(&data)
-		if err != nil {
-			finalErr = err
-			return
-		}
+		intervalDuration = intervalDuration * 1000
 
 		// Aggregate price history
 		price := []float64{}
-		for _, v := range data.Data {
-			p, err := strconv.ParseFloat(v.Price, 64)
-			if err != nil {
-				finalErr = err
-				return
-			}
+		var startTimeStamp float64 = 0
 
-			price = append(price, p)
+		for _, v := range *data.Prices {
+			if float64(v[0])-startTimeStamp > intervalDuration {
+				startTimeStamp = float64(v[0])
+				price = append(price, float64(v[1]))
+			}
 		}
 
 		// Set max and min
