@@ -23,9 +23,7 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
-	changeIntervalPackage "github.com/Gituser143/cryptgo/pkg/display/changeInterval"
-	c "github.com/Gituser143/cryptgo/pkg/display/currency"
-	"github.com/Gituser143/cryptgo/pkg/display/portfolio"
+	uw "github.com/Gituser143/cryptgo/pkg/display/utilitywidgets"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
@@ -54,11 +52,11 @@ func DisplayCoin(
 	// variables for currency
 	currency := "USD $"
 	currencyVal := 1.0
-	currencyWidget := c.NewCurrencyPage()
+	currencyWidget := uw.NewCurrencyPage()
 
 	// variables for graph interval
 	changeInterval := "24 Hours"
-	changeIntervalWidget := changeIntervalPackage.NewChangeIntervalPage()
+	changeIntervalWidget := uw.NewChangeIntervalPage()
 
 	// Selection of default table
 	selectedTable := myPage.ExplorerTable
@@ -79,7 +77,7 @@ func DisplayCoin(
 	defer utils.SaveMetadata(favourites, currency, portfolioMap)
 
 	// Initiliase Portfolio Table
-	portfolioTable := portfolio.NewPortfolioPage()
+	portfolioTable := uw.NewPortfolioPage()
 
 	// Initialise help menu
 	help := widgets.NewHelpMenu()
@@ -234,7 +232,7 @@ func DisplayCoin(
 
 						// Get newer selected duration
 						changeInterval = row[0]
-						newChangeInterval := changeIntervalPackage.DurationMap[changeInterval]
+						newChangeInterval := uw.IntervalMap[changeInterval]
 
 						// Empty current graph
 						myPage.ValueGraph.Data["Value"] = []float64{}

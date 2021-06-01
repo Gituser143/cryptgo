@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package currency
+package utilitywidgets
 
 import (
 	"encoding/json"
@@ -27,8 +27,6 @@ import (
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
 )
-
-var rows [][]string
 
 // Currency holds data of a currency
 type Currency struct {
@@ -64,7 +62,6 @@ func NewCurrencyPage() *CurrencyTable {
 
 	c.Table.Title = " Select Currency "
 	c.Table.Header = []string{"Currency", "Symbol", "Type", "USD rate"}
-	c.Table.Rows = rows
 	c.Table.CursorColor = ui.ColorCyan
 	c.Table.ShowCursor = true
 	c.Table.ColWidths = []int{5, 5, 5, 5}

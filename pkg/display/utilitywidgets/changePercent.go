@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package changePercentageDuration
+package utilitywidgets
 
 import (
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
 )
 
-var rows [][]string = [][]string{{"1 Hour"}, {"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"200 Days"}, {"1 Year"}}
+var durationRows [][]string = [][]string{{"1 Hour"}, {"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"200 Days"}, {"1 Year"}}
 
 var DurationMap map[string]string = map[string]string{
 	"1 Hour":   "1h",
@@ -45,7 +45,7 @@ func NewChangePercentPage() *ChangePercentageDurationTable {
 
 	c.Table.Title = " Select Duration for Percentage Change "
 	c.Table.Header = []string{"Duration"}
-	c.Table.Rows = rows
+	c.Table.Rows = durationRows
 	c.Table.CursorColor = ui.ColorCyan
 	c.Table.ShowCursor = true
 	c.Table.ColWidths = []int{5}

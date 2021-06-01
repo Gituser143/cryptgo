@@ -18,9 +18,7 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
@@ -28,50 +26,7 @@ import (
 	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
 
-// API Documentation can be found at https://docs.coincap.io/
-
-// Asset holds details of a single coin
-type Asset struct {
-	Id                string `json:"id"`
-	Rank              string `json:"rank"`
-	Symbol            string `json:"symbol"`
-	Name              string `json:"name"`
-	Supply            string `json:"supply"`
-	MaxSupply         string `json:"maxSupply"`
-	MarketCapUsd      string `json:"marketCapUsd"`
-	VolumeUsd24Hr     string `json:"volumeUsd24Hr"`
-	PriceUsd          string `json:"priceUsd"`
-	ChangePercent24Hr string `json:"changePercent24Hr"`
-	Vwap24Hr          string `json:"vwap24Hr"`
-	Explorer          string `json:"explorer"`
-}
-
-// AssetData is used to hold details of multiple coins and the price history
-// of top ranked coins along with their names
-type AssetData struct {
-	IsTopCoinData bool
-	Data          []Asset `json:"data"`
-	TimeStamp     uint    `json:"timestamp"`
-	TopCoinData   [][]float64
-	MaxPrices     []float64
-	MinPrices     []float64
-	TopCoins      []string
-	AllCoinData   geckoTypes.CoinsMarket
-}
-
-// CoinPrice holds the price of a coin at a given time
-type CoinPrice struct {
-	Price     string `json:"priceUsd"`
-	Timestamp uint   `json:"time"`
-}
-
-// CoinHistory holds a slice of CoinPrice, as history of coin value
-type CoinHistory struct {
-	Data      []CoinPrice `json:"data"`
-	Timestamp uint        `json:"timestamp"`
-}
-
-func GetTopNCoinsFromCoinGecko(n int) (geckoTypes.CoinsMarket, error) {
+func getTopNCoins(n int) (geckoTypes.CoinsMarket, error) {
 	geckoClient := gecko.NewClient(nil)
 
 	vsCurrency := "usd"
@@ -119,9 +74,7 @@ func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duratio
 	return coinData.PriceChangePercentage24h
 }
 
-// Get Assets contacts the 'https://api.coingecko.com/api/v3/coins/markets' endpoint
-// to get asset information of top 100 coins. It then serves this information through the
-// dataChannel
+// Get Assets serves data about top 100 coins for the main page
 func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
 	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
@@ -136,7 +89,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 
 		if *sendData {
 
-			coinsData, err := GetTopNCoinsFromCoinGecko(100)
+			coinsData, err := getTopNCoins(100)
 			data.AllCoinData = coinsData
 			if err != nil {
 				finalErr = err
@@ -161,11 +114,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 	})
 }
 
-// GetTopCoinData first fetches the top 3 ranked coins by contacting the
-// 'api.coincap.io/v2/assets' endpoint. Following which, the history of each of
-// these coin is queried to the endpoint
-// 'api.coincap.io/v2/assets/{id}/history'. This history data is served
-//  on the dataChannel
+// GetTopCoinData serves 7 Day price history for top 3 coins (vby market cap)
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
 	// Init Client
@@ -239,40 +188,4 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			}
 		}
 	})
-}
-
-func GetTopNCoinSymbolToIDMap(n int) (map[string]string, error) {
-
-	coinToSymbolMap := map[string]string{}
-
-	url := fmt.Sprintf("https://api.coincap.io/v2/assets?limit=%d", n)
-	method := "GET"
-
-	// Create Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Init Client
-	client := &http.Client{}
-	data := AssetData{}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	// Read response
-	err = json.NewDecoder(res.Body).Decode(&data)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, coin := range data.Data {
-		coinToSymbolMap[coin.Symbol] = coin.Id
-	}
-
-	return coinToSymbolMap, nil
 }

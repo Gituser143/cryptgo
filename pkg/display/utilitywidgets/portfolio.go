@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package portfolio
+package utilitywidgets
 
 import (
 	"fmt"
@@ -28,8 +28,6 @@ import (
 	gecko "github.com/superoo7/go-gecko/v3"
 )
 
-var rows [][]string
-
 type PortfolioTable struct {
 	*widgets.Table
 }
@@ -42,7 +40,6 @@ func NewPortfolioPage() *PortfolioTable {
 
 	p.Table.Title = " Portfolio "
 	p.Table.Header = []string{"Coin", "Symbol", "Price", "Holding", "Balance"}
-	p.Table.Rows = rows
 	p.Table.CursorColor = ui.ColorCyan
 	p.Table.ShowCursor = true
 	p.Table.ColWidths = []int{5, 5, 5, 5, 5}

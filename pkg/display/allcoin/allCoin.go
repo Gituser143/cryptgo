@@ -24,10 +24,8 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
-	changePercentPackage "github.com/Gituser143/cryptgo/pkg/display/changePercent"
 	"github.com/Gituser143/cryptgo/pkg/display/coin"
-	c "github.com/Gituser143/cryptgo/pkg/display/currency"
-	"github.com/Gituser143/cryptgo/pkg/display/portfolio"
+	uw "github.com/Gituser143/cryptgo/pkg/display/utilitywidgets"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
@@ -54,9 +52,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	currencyVal := 1.0
 
 	changePercent := "24h"
-	changePercentWidget := changePercentPackage.NewChangePercentPage()
+	changePercentWidget := uw.NewChangePercentPage()
 
-	currencyWidget := c.NewCurrencyPage()
+	currencyWidget := uw.NewCurrencyPage()
 
 	// variables for sorting CoinTable
 	coinSortIdx := -1
@@ -94,7 +92,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	help.SelectHelpMenu("ALL")
 
 	// Initiliase Portfolio Table
-	portfolioTable := portfolio.NewPortfolioPage()
+	portfolioTable := uw.NewPortfolioPage()
 
 	// Pause function to pause sending and receiving of data
 	pause := func() {
@@ -332,7 +330,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					if changePercentWidget.SelectedRow < len(changePercentWidget.Rows) {
 						row := changePercentWidget.Rows[changePercentWidget.SelectedRow]
 
-						changePercent = changePercentPackage.DurationMap[row[0]]
+						changePercent = uw.DurationMap[row[0]]
 
 						coinHeader[3] = fmt.Sprintf("Change %%(%s)", changePercent)
 					}

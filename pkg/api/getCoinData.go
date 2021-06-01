@@ -35,45 +35,6 @@ const (
 
 // API Documentation can be found at https://docs.coincap.io/
 
-// CoinData Holds data pertaining to a single coin.
-// This is used to serve per coin details.
-// It additionally holds a map of favourite coins.
-type CoinData struct {
-	Type         string
-	PriceHistory []float64
-	MinPrice     float64
-	MaxPrice     float64
-	Details      CoinDetails
-	Favourites   map[string]float64
-}
-
-// CoinAsset holds Asset data for a single coin
-type CoinAsset struct {
-	Data      Asset `json:"data"`
-	TimeStamp uint  `json:"timestamp"`
-}
-
-type CoinDetails struct {
-	Name           string
-	Symbol         string
-	Rank           string
-	BlockTime      string
-	MarketCap      float64
-	Website        string
-	Explorers      [][]string
-	ATH            float64
-	ATHDate        string
-	ATL            float64
-	ATLDate        string
-	High24         float64
-	Low24          float64
-	TotalVolume    float64
-	ChangePercents [][]string
-	TotalSupply    float64
-	CurrentSupply  float64
-	LastUpdate     string
-}
-
 // GetFavouritePrices gets coin prices for coins specified by favourites.
 // This data is returned on the dataChannel.
 func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataChannel chan CoinData) error {

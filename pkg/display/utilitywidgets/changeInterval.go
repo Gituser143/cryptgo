@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package changeIntervalDuration
+package utilitywidgets
 
 import (
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
 )
 
-var rows [][]string = [][]string{{"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"90 Days"}, {"180 Days"}, {"1 Year"}, {"5 Years"}}
+var intervalRows [][]string = [][]string{{"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"90 Days"}, {"180 Days"}, {"1 Year"}, {"5 Years"}}
 
-var DurationMap map[string]string = map[string]string{
+var IntervalMap map[string]string = map[string]string{
 	"24 Hours": "24hr",
 	"7 Days":   "7d",
 	"14 Days":  "14d",
@@ -45,7 +45,7 @@ func NewChangeIntervalPage() *ChangeIntervalDurationTable {
 
 	c.Table.Title = " Select Duration for Coin History Interval"
 	c.Table.Header = []string{"Duration"}
-	c.Table.Rows = rows
+	c.Table.Rows = intervalRows
 	c.Table.CursorColor = ui.ColorCyan
 	c.Table.ShowCursor = true
 	c.Table.ColWidths = []int{5}
