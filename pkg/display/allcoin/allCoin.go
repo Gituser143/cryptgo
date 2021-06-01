@@ -47,6 +47,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	}
 	defer ui.Close()
 
+	// Variables for CoinIDs
+	coinIDMap, m := api.NewCoinIDMap()
+	go func() {
+		m.Lock()
+		coinIDMap.Populate()
+		m.Unlock()
+	}()
+
 	// Variables for currency
 	currency := "USD $"
 	currencyVal := 1.0
@@ -129,10 +137,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 	// Render Empty UI
 	updateUI()
-
-	// coinIDs tracks symbol: id
-	// coinIDs, _ := api.GetTopNCoinSymbolToIDMap(200)
-	coinIDs := make(map[string]string)
 
 	// Create Channel to get keyboard events
 	uiEvents := ui.PollEvents()
@@ -254,7 +258,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						symbol = row[1]
 					}
 
-					id = coinIDs[symbol]
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
+
+					id = coinIDs.CoinGeckoID
 
 					if id != "" {
 						inputStr := widgets.DrawEdit(uiEvents, symbol)
@@ -286,7 +294,12 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							symbol = row[0]
 						}
 					}
-					id = coinIDs[symbol]
+
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
+
+					id = coinIDs.CoinGeckoID
 
 					if id != "" {
 
@@ -340,7 +353,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					// pause UI and data send
 					pause()
 
-					id := ""
 					symbol := ""
 
 					// Get ID and symbol
@@ -355,9 +367,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							symbol = row[0]
 						}
 					}
-					id = coinIDs[symbol]
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
 
-					if id != "" {
+					coinCapId := coinIDs.CoinCapID
+					coinGeckoId := coinIDs.CoinGeckoID
+
+					if coinGeckoId != "" {
 						// Create new errorgroup for coin page
 						eg, coinCtx := errgroup.WithContext(ctx)
 						coinDataChannel := make(chan api.CoinData)
@@ -371,7 +388,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						eg.Go(func() error {
 							err := api.GetCoinHistory(
 								coinCtx,
-								id,
+								coinGeckoId,
 								intervalChannel,
 								coinDataChannel,
 							)
@@ -380,7 +397,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						// Serve Coin Asset data
 						eg.Go(func() error {
-							err := api.GetCoinAsset(coinCtx, id, coinDataChannel)
+							err := api.GetCoinAsset(coinCtx, coinGeckoId, coinDataChannel)
 							return err
 						})
 
@@ -394,17 +411,19 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						})
 
 						// Serve Live price of coin
-						eg.Go(func() error {
-							api.GetLivePrice(coinCtx, id, coinPriceChannel)
-							return nil
-						})
+						if coinCapId != "" {
+							eg.Go(func() error {
+								api.GetLivePrice(coinCtx, coinCapId, coinPriceChannel)
+								return nil
+							})
+						}
 
 						// Serve Visuals for coin
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
 								coinCtx,
-								id,
-								coinIDs,
+								coinGeckoId,
+								coinIDMap,
 								intervalChannel,
 								coinDataChannel,
 								coinPriceChannel,
@@ -429,6 +448,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 
 				if utilitySelected == "" {
+					selectedTable.ShowCursor = false
 					selectedTable = myPage.CoinTable
 					selectedTable.ShowCursor = true
 				}
@@ -450,7 +470,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							symbol = row[0]
 						}
 					}
-					id = coinIDs[symbol]
+					coinIDs := coinIDMap[symbol]
+					id = coinIDs.CoinGeckoID
 					favourites[id] = true
 				}
 
@@ -471,7 +492,12 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							symbol = row[0]
 						}
 					}
-					id = coinIDs[symbol]
+
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
+
+					id = coinIDs.CoinGeckoID
 
 					delete(favourites, id)
 				}
@@ -562,7 +588,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 				// Iterate over coin assets
 				for _, val := range data.AllCoinData {
-					coinIDs[strings.ToUpper(val.Symbol)] = val.ID
 					// Get coin price
 					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 

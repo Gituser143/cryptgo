@@ -38,7 +38,7 @@ const (
 func DisplayCoin(
 	ctx context.Context,
 	id string,
-	coinIDs map[string]string,
+	coinIDs api.CoinIDMap,
 	intervalChannel chan string,
 	dataChannel chan api.CoinData,
 	priceChannel chan string,
@@ -264,6 +264,7 @@ func DisplayCoin(
 				}
 
 				if utilitySelected == "" {
+					selectedTable.ShowCursor = false
 					selectedTable = myPage.ExplorerTable
 					selectedTable.ShowCursor = true
 				}
@@ -281,7 +282,7 @@ func DisplayCoin(
 					}
 
 					// Get ID from symbol
-					id = coinIDs[symbol]
+					id = coinIDs[symbol].CoinGeckoID
 
 					if id != "" {
 						// Draw Edit Box and get new amount

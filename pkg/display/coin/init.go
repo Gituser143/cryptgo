@@ -116,7 +116,7 @@ func (page *CoinPage) InitCoin() {
 			3 * x / 10,
 		}
 	}
-	page.PriceBox.Rows = [][]string{{"", "", ""}}
+	page.PriceBox.Rows = [][]string{{"NA", "", ""}}
 	page.PriceBox.ColColor[1] = ui.ColorGreen
 	page.PriceBox.ColColor[2] = ui.ColorRed
 
