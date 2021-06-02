@@ -41,14 +41,14 @@ What does `cryptgo` do?
 
 Cryptgo helps you look at cryptocurrency values and details straight from your terminal!
 
-It makes use of the API provided by [CoinCap.io](https://coincap.io/) to provide required details!
+It makes use of the API provided by [CoinCap.io](https://coincap.io/) and [CoinGecko](https://www.coingecko.com/en) to provide required details!
 
 Main Page
 ---------
 
 ![main-page](images/main-page.png)
 
--	Here, the top 3 currencies (as ranked by CoinCap) are displayed with their graphs on top.
+-	Here, the top 3 currencies (as ranked by Market Cap) are displayed with their graphs on top.
 
 -	A table is provided with relevant information about other currencies.
 
