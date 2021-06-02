@@ -27,7 +27,8 @@ type Metadata struct {
 	Portfolio  map[string]float64 `json:"portfolio"`
 }
 
-// GetFavourites reads stored favourite coin details from ~/.cryptgo-data.json and returns a map.
+// GetFavourites reads stored favourite coin details from
+// ~/.cryptgo-data.json and returns a map.
 func GetFavourites() map[string]bool {
 	metadata := Metadata{}
 
@@ -62,7 +63,8 @@ func GetFavourites() map[string]bool {
 	return map[string]bool{}
 }
 
-// GetPortfolio reads stored favourite coin details from ~/.cryptgo-data.json and returns a map.
+// GetPortfolio reads stored portfolio details from
+// ~/.cryptgo-data.json and returns a map.
 func GetPortfolio() map[string]float64 {
 	metadata := Metadata{}
 
@@ -97,7 +99,8 @@ func GetPortfolio() map[string]float64 {
 	return map[string]float64{}
 }
 
-// SaveMetadata exports favourites, currency and portfolio to disk. Data is saved on ~/.cryptgo-data.json
+// SaveMetadata exports favourites, currency and portfolio to disk.
+// Data is saved on ~/.cryptgo-data.json
 func SaveMetadata(favourites map[string]bool, currency string, portfolio map[string]float64) error {
 	// Get Home directory
 	homeDir, err := os.UserHomeDir()

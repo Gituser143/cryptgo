@@ -19,7 +19,6 @@ package coin
 import (
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
-	w "github.com/gizak/termui/v3/widgets"
 )
 
 // CoinPage holds UI items for a coin page
@@ -27,10 +26,10 @@ type CoinPage struct {
 	Grid            *ui.Grid
 	FavouritesTable *widgets.Table
 	ValueGraph      *widgets.LineGraph
-	IntervalTable   *widgets.Table
-	PriceBox        *widgets.Table
-	VolumeGauge     *w.Gauge
 	DetailsTable    *widgets.Table
+	ChangesTable    *widgets.Table
+	PriceBox        *widgets.Table
+	ExplorerTable   *widgets.Table
 	SupplyChart     *widgets.BarChart
 }
 
@@ -40,10 +39,10 @@ func NewCoinPage() *CoinPage {
 		Grid:            ui.NewGrid(),
 		FavouritesTable: widgets.NewTable(),
 		ValueGraph:      widgets.NewLineGraph(),
-		IntervalTable:   widgets.NewTable(),
-		PriceBox:        widgets.NewTable(),
-		VolumeGauge:     w.NewGauge(),
 		DetailsTable:    widgets.NewTable(),
+		ChangesTable:    widgets.NewTable(),
+		PriceBox:        widgets.NewTable(),
+		ExplorerTable:   widgets.NewTable(),
 		SupplyChart:     widgets.NewBarChart(),
 	}
 	page.InitCoin()
@@ -77,42 +76,6 @@ func (page *CoinPage) InitCoin() {
 	page.ValueGraph.Data["Max"] = []float64{}
 	page.ValueGraph.Data["Min"] = []float64{}
 
-	// Initialise Interval Table
-	page.IntervalTable.Title = " Graph Interval "
-	page.IntervalTable.BorderStyle.Fg = ui.ColorCyan
-	page.IntervalTable.TitleStyle.Fg = ui.ColorClear
-	page.IntervalTable.Header = []string{"Interval"}
-	page.IntervalTable.Rows = [][]string{
-		{"1  day"},
-		{"12 hour"},
-		{"6  hour"},
-		{"2  hour"},
-		{"1  hour"},
-		{"30 min"},
-		{"15 min"},
-		{"5  min"},
-		{"1  min"},
-	}
-	page.IntervalTable.ColResizer = func() {
-		x := page.IntervalTable.Inner.Dx()
-		page.IntervalTable.ColWidths = []int{x}
-	}
-	page.IntervalTable.CursorColor = ui.ColorCyan
-
-	// Initialise Price Box
-	page.PriceBox.Title = " Price & Change "
-	page.PriceBox.BorderStyle.Fg = ui.ColorCyan
-	page.PriceBox.TitleStyle.Fg = ui.ColorClear
-	page.PriceBox.Header = []string{"Live Price", "Change %"}
-	page.PriceBox.ColResizer = func() {
-		x := page.PriceBox.Inner.Dx()
-		page.PriceBox.ColWidths = []int{
-			6 * x / 10,
-			4 * x / 10,
-		}
-	}
-	page.PriceBox.Rows = [][]string{{"", ""}}
-
 	// Initialise Details Table
 	page.DetailsTable.Title = " Details "
 	page.DetailsTable.BorderStyle.Fg = ui.ColorCyan
@@ -120,17 +83,53 @@ func (page *CoinPage) InitCoin() {
 	page.DetailsTable.ColResizer = func() {
 		x := page.DetailsTable.Inner.Dx()
 		page.DetailsTable.ColWidths = []int{
-			x / 2,
-			x / 2,
+			4 * x / 10,
+			6 * x / 10,
 		}
 	}
 
-	// Initialise Volume Used gauge
-	page.VolumeGauge.Title = " 24 Hr Volume Used "
-	page.VolumeGauge.BorderStyle.Fg = ui.ColorCyan
-	page.VolumeGauge.TitleStyle.Fg = ui.ColorClear
-	page.VolumeGauge.BarColor = ui.ColorCyan
-	page.VolumeGauge.Percent = 0
+	// Initialise Change Table
+	page.ChangesTable.Title = " Changes "
+	page.ChangesTable.BorderStyle.Fg = ui.ColorCyan
+	page.ChangesTable.BorderStyle.Bg = ui.ColorClear
+	page.ChangesTable.Header = []string{"Interval", "Change"}
+	page.ChangesTable.ColResizer = func() {
+		x := page.ChangesTable.Inner.Dx()
+		page.ChangesTable.ColWidths = []int{
+			4 * x / 10,
+			6 * x / 10,
+		}
+	}
+	page.ChangesTable.ChangeCol[1] = true
+	page.ChangesTable.ShowCursor = false
+
+	// Initialise Price Box
+	page.PriceBox.Title = " Live Price "
+	page.PriceBox.BorderStyle.Fg = ui.ColorCyan
+	page.PriceBox.TitleStyle.Fg = ui.ColorClear
+	page.PriceBox.Header = []string{"Price", "24H High", "24H Low"}
+	page.PriceBox.ColResizer = func() {
+		x := page.PriceBox.Inner.Dx()
+		page.PriceBox.ColWidths = []int{
+			4 * x / 10,
+			3 * x / 10,
+			3 * x / 10,
+		}
+	}
+	page.PriceBox.Rows = [][]string{{"NA", "", ""}}
+	page.PriceBox.ColColor[1] = ui.ColorGreen
+	page.PriceBox.ColColor[2] = ui.ColorRed
+
+	// Initialise Explorer Table
+	page.ExplorerTable.Title = " Explorers "
+	page.ExplorerTable.BorderStyle.Fg = ui.ColorCyan
+	page.ExplorerTable.TitleStyle.Fg = ui.ColorClear
+	page.ExplorerTable.Header = []string{"Links"}
+	page.ExplorerTable.ColResizer = func() {
+		x := page.ExplorerTable.Inner.Dx()
+		page.ExplorerTable.ColWidths = []int{x}
+	}
+	page.ExplorerTable.CursorColor = ui.ColorCyan
 
 	// Initalise Bar Graph
 	page.SupplyChart.Title = " Supply "
@@ -148,17 +147,19 @@ func (page *CoinPage) InitCoin() {
 	page.Grid.Set(
 		ui.NewCol(0.33,
 			ui.NewRow(0.5, page.FavouritesTable),
-			ui.NewRow(0.5, page.IntervalTable),
+			ui.NewRow(0.5, page.DetailsTable),
 		),
 		ui.NewCol(0.67,
 			ui.NewRow(0.5, page.ValueGraph),
-			ui.NewRow(0.2,
-				ui.NewCol(0.5, page.PriceBox),
-				ui.NewCol(0.5, page.VolumeGauge),
-			),
-			ui.NewRow(0.3,
-				ui.NewCol(0.5, page.DetailsTable),
-				ui.NewCol(0.5, page.SupplyChart),
+			ui.NewRow(0.5,
+				ui.NewCol(0.5,
+					ui.NewRow(0.4, page.PriceBox),
+					ui.NewRow(0.6, page.ChangesTable),
+				),
+				ui.NewCol(0.5,
+					ui.NewRow(0.5, page.ExplorerTable),
+					ui.NewRow(0.5, page.SupplyChart),
+				),
 			),
 		),
 	)

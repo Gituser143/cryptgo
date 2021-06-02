@@ -63,7 +63,7 @@ var rootCmd = &cobra.Command{
 		})
 
 		if err := eg.Wait(); err != nil {
-			if err.Error() != "UI Closed" && err.Error() != "coin UI Closed" {
+			if err.Error() != "UI Closed" {
 				return err
 			}
 		}

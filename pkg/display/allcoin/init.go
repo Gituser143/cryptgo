@@ -67,6 +67,7 @@ func (page *AllCoinPage) InitAllCoin() {
 	}
 	page.CoinTable.ShowCursor = true
 	page.CoinTable.CursorColor = ui.ColorCyan
+	page.CoinTable.ChangeCol[3] = true
 
 	// Initialise Favourites table
 	page.FavouritesTable.Title = " Favourites "

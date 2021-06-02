@@ -41,14 +41,14 @@ What does `cryptgo` do?
 
 Cryptgo helps you look at cryptocurrency values and details straight from your terminal!
 
-It makes use of the API provided by [CoinCap.io](https://coincap.io/) to provide required details!
+It makes use of the API provided by [CoinCap.io](https://coincap.io/) and [CoinGecko](https://www.coingecko.com/en) to provide required details!
 
 Main Page
 ---------
 
 ![main-page](images/main-page.png)
 
--	Here, the top 3 currencies (as ranked by CoinCap) are displayed with their graphs on top.
+-	Here, the top 3 currencies (as ranked by Market Cap) are displayed with their graphs on top.
 
 -	A table is provided with relevant information about other currencies.
 
@@ -77,11 +77,14 @@ Key-bindings can be found by pressing `?`. This displays the help prompt.
 	-	Use `<F-column number>` to sort descending.
 	-	Eg: `1` to sort ascending on 1st Col and `F1` for descending
 -	**Actions (Interval Table)**
+	-	`<c>`: Select Currency (from popular list)
+	-	`<C>`: Select Currency (from full list)
+	-	`e`: Add/Edit coin to Portfolio
+	-	`P`: View portfolio
 	-	`<s>`: Star, save to favourites
 	-	`<S>`: UnStar,remove from favourites
 	-	`<Enter>`: View Coin Information
-	-	`<c>`: Select Currency (from popular list)
-	-	`<C>`: Select Currency (from full list)
+	-	`%`: Select Duration for Percentage Change
 
 Coin Page
 ---------
@@ -130,20 +133,36 @@ Portfolio
 
 -	Coins can be added/modified/removed by pressing `e` on a coin in the main page. (Set Holding Amount as 0 to remove)
 
--	Holdings can be modified either through the main page or through the portfolio itself.
+-	Holdings can be modified either through the main page or through the portfolio itself. The below image shows the edit box when modifying holdings.
 
-Extra
------
+![edit-box](images/portfolio-edit.png)
+
+Utilities
+---------
+
+### Currency
 
 Currency need not be fixed to USD $, other currencies can be selected from either the popular currency table (press `c`) or full currency table (press `C`).
 
-### Popular Currency Table
+#### Popular Currency Table
 
 ![currency](images/currency.png)
 
-### Full Currency Table
+#### Full Currency Table
 
 ![currency-full](images/currency-full.png)
+
+### Change Percentage Interval
+
+The Change Percentage on the main page can be modified too. A list of durations can be viewed and selected by pressing `%`, which brings up the below table.
+
+![change-duration](images/change-duration.png)
+
+### Change Graph Duration
+
+The duration of the history graph on the coin page is modifiable. To list the possible durations and select one, press `d` in the coin page. that will bring up the following table.
+
+![history-duration](images/history-duration.png)
 
 ---
 
@@ -151,6 +170,8 @@ Contributing
 ============
 
 **Pull Requests and Issues are welcome!**
+
+Please check the issues page to see available issues to work on, or to even create some!
 
 ---
 

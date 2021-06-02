@@ -14,22 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package portfolio
+package utilitywidgets
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
+	"strings"
 	"sync"
 
-	"github.com/Gituser143/cryptgo/pkg/api"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
+	gecko "github.com/superoo7/go-gecko/v3"
 )
-
-var rows [][]string
 
 type PortfolioTable struct {
 	*widgets.Table
@@ -43,7 +40,6 @@ func NewPortfolioPage() *PortfolioTable {
 
 	p.Table.Title = " Portfolio "
 	p.Table.Header = []string{"Coin", "Symbol", "Price", "Holding", "Balance"}
-	p.Table.Rows = rows
 	p.Table.CursorColor = ui.ColorCyan
 	p.Table.ShowCursor = true
 	p.Table.ColWidths = []int{5, 5, 5, 5, 5}
@@ -90,7 +86,8 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 	var m sync.Mutex
 
 	client := &http.Client{}
-	method := "GET"
+
+	geckoClient := gecko.NewClient(client)
 
 	rows := [][]string{}
 	sum := 0.0
@@ -99,36 +96,16 @@ func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency strin
 		go func(coin string, amt float64, wg *sync.WaitGroup, m *sync.Mutex) {
 			defer wg.Done()
 
-			url := fmt.Sprintf("https://api.coincap.io/v2/assets/%s", coin)
-
-			req, err := http.NewRequest(method, url, nil)
+			data, err := geckoClient.CoinsID(coin, false, false, true, false, false, false)
 			if err != nil {
 				return
 			}
 
-			res, err := client.Do(req)
-			if err != nil {
-				return
-			}
-
-			defer res.Body.Close()
-
-			data := api.CoinAsset{}
-
-			err = json.NewDecoder(res.Body).Decode(&data)
-
-			if err != nil {
-				return
-			}
-
-			p, err := strconv.ParseFloat(data.Data.PriceUsd, 64)
-			if err != nil {
-				return
-			}
+			p := data.MarketData.CurrentPrice["usd"]
 
 			row := []string{
-				data.Data.Name,
-				data.Data.Symbol,
+				data.Name,
+				strings.ToUpper(data.Symbol),
 				fmt.Sprintf("%.2f", p/currencyVal),
 				fmt.Sprintf("%.6f", amt),
 				fmt.Sprintf("%.4f", p*amt/currencyVal),

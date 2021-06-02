@@ -20,12 +20,12 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
 	"github.com/Gituser143/cryptgo/pkg/display/coin"
-	c "github.com/Gituser143/cryptgo/pkg/display/currency"
-	"github.com/Gituser143/cryptgo/pkg/display/portfolio"
+	uw "github.com/Gituser143/cryptgo/pkg/display/utilitywidgets"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
@@ -47,39 +47,27 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	}
 	defer ui.Close()
 
+	// Variables for CoinIDs
+	coinIDMap, m := api.NewCoinIDMap()
+	go func() {
+		m.Lock()
+		coinIDMap.Populate()
+		m.Unlock()
+	}()
+
 	// Variables for currency
 	currency := "USD $"
 	currencyVal := 1.0
-	selectCurrency := false
-	currencyWidget := c.NewCurrencyPage()
+	currencyWidget := uw.NewCurrencyPage()
 
-	// variables for sorting CoinTable
-	coinSortIdx := -1
-	coinSortAsc := false
-	coinHeader := []string{
-		"Rank",
-		"Symbol",
-		fmt.Sprintf("Price (%s)", currency),
-		"Change %",
-		"Supply / MaxSupply",
-	}
-
-	// variables for sorting FavouritesTable
-	favSortIdx := -1
-	favSortAsc := false
-	favHeader := []string{
-		"Symbol",
-		fmt.Sprintf("Price (%s)", currency),
-	}
-
-	previousKey := ""
-
-	// coinIDs tracks symbol: id
-	coinIDs := make(map[string]string)
+	// Variables for percentage change
+	changePercent := "24h"
+	changePercentWidget := uw.NewChangePercentPage()
 
 	// Initalise page and set selected table
 	myPage := NewAllCoinPage()
 	selectedTable := myPage.CoinTable
+	utilitySelected := ""
 
 	// Initialise favourites and portfolio
 	portfolioMap := utils.GetPortfolio()
@@ -89,11 +77,30 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Initialise Help Menu
 	help := widgets.NewHelpMenu()
 	help.SelectHelpMenu("ALL")
-	helpSelected := false
 
 	// Initiliase Portfolio Table
-	portfolioTable := portfolio.NewPortfolioPage()
-	portfolioSelected := false
+	portfolioTable := uw.NewPortfolioPage()
+
+	// Variables for sorting CoinTable
+	coinSortIdx := -1
+	coinSortAsc := false
+	coinHeader := []string{
+		"Rank",
+		"Symbol",
+		fmt.Sprintf("Price (%s)", currency),
+		fmt.Sprintf("Change %%(%s)", changePercent),
+		"Supply / MaxSupply",
+	}
+
+	// Variables for sorting FavouritesTable
+	favSortIdx := -1
+	favSortAsc := false
+	favHeader := []string{
+		"Symbol",
+		fmt.Sprintf("Price (%s)", currency),
+	}
+
+	previousKey := ""
 
 	// Pause function to pause sending and receiving of data
 	pause := func() {
@@ -110,16 +117,20 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		ui.Clear()
 
 		// Render required widgets
-		if helpSelected {
+		switch utilitySelected {
+		case "HELP":
 			help.Resize(w, h)
 			ui.Render(help)
-		} else if portfolioSelected {
+		case "PORTFOLIO":
 			portfolioTable.Resize(w, h)
 			ui.Render(portfolioTable)
-		} else if selectCurrency {
+		case "CURRENCY":
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
-		} else {
+		case "CHANGE":
+			changePercentWidget.Resize(w, h)
+			ui.Render(changePercentWidget)
+		default:
 			ui.Render(myPage.Grid)
 		}
 	}
@@ -140,8 +151,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			return ctx.Err()
 
 		case e := <-uiEvents: // keyboard events
+			// Handle Utility Selection, resize and Quit
 			switch e.ID {
-			case "q", "<C-c>": // q or Ctrl-C to quit
+			case "q", "<C-c>":
 				return fmt.Errorf("UI Closed")
 
 			case "<Resize>":
@@ -151,72 +163,92 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				pause()
 
 			case "?":
-				helpSelected = !helpSelected
+				selectedTable.ShowCursor = false
+				selectedTable = help.Table
+				selectedTable.ShowCursor = true
+				utilitySelected = "HELP"
 				updateUI()
 
 			case "f":
-				if !helpSelected && !selectCurrency && !portfolioSelected {
+				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.FavouritesTable
+					selectedTable.ShowCursor = true
 				}
 
 			case "F":
-				if !helpSelected && !selectCurrency && !portfolioSelected {
+				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
 					selectedTable = myPage.CoinTable
+					selectedTable.ShowCursor = true
 				}
 
 			case "c":
-				if !helpSelected && !portfolioSelected {
+				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
-					selectCurrency = true
+					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows()
-					updateUI()
+					utilitySelected = "CURRENCY"
 				}
 
 			case "C":
-				if !helpSelected && !portfolioSelected {
+				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
-					selectCurrency = true
+					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateAll()
-					updateUI()
+					utilitySelected = "CURRENCY"
+				}
+
+			case "%":
+				if utilitySelected == "" {
+					selectedTable.ShowCursor = false
+					selectedTable = changePercentWidget.Table
+					selectedTable.ShowCursor = true
+					utilitySelected = "CHANGE"
 				}
 
 			case "P":
-				if !helpSelected && !selectCurrency {
+				if utilitySelected == "" {
+					selectedTable.ShowCursor = false
+					selectedTable = portfolioTable.Table
+					selectedTable.ShowCursor = true
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
-					portfolioSelected = !portfolioSelected
-					updateUI()
+					utilitySelected = "PORTFOLIO"
 				}
-			}
-			if helpSelected {
-				switch e.ID {
-				case "?":
-					updateUI()
-				case "<Escape>":
-					helpSelected = false
-					updateUI()
-				case "j", "<Down>":
-					help.List.ScrollDown()
-					ui.Render(help)
-				case "k", "<Up>":
-					help.List.ScrollUp()
-					ui.Render(help)
+
+			// Handle Navigations
+			case "<Escape>":
+				utilitySelected = ""
+				selectedTable = myPage.CoinTable
+				selectedTable.ShowCursor = true
+				updateUI()
+			case "j", "<Down>":
+				selectedTable.ScrollDown()
+			case "k", "<Up>":
+				selectedTable.ScrollUp()
+			case "<C-d>":
+				selectedTable.ScrollHalfPageDown()
+			case "<C-u>":
+				selectedTable.ScrollHalfPageUp()
+			case "<C-f>":
+				selectedTable.ScrollPageDown()
+			case "<C-b>":
+				selectedTable.ScrollPageUp()
+			case "g":
+				if previousKey == "g" {
+					selectedTable.ScrollTop()
 				}
-			} else if portfolioSelected {
-				switch e.ID {
-				case "<Escape>":
-					portfolioSelected = false
-					updateUI()
-				case "j", "<Down>":
-					portfolioTable.ScrollDown()
-					ui.Render(portfolioTable)
-				case "k", "<Up>":
-					portfolioTable.ScrollUp()
-					ui.Render(portfolioTable)
-				case "e": // Add/Edit coin in portfolio
+			case "<Home>":
+				selectedTable.ScrollTop()
+			case "G", "<End>":
+				selectedTable.ScrollBottom()
+
+			// Handle Actions
+			case "e":
+				switch utilitySelected {
+				case "PORTFOLIO":
 					id := ""
 					symbol := ""
 
@@ -226,7 +258,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						symbol = row[1]
 					}
 
-					id = coinIDs[symbol]
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
+
+					id = coinIDs.CoinGeckoID
 
 					if id != "" {
 						inputStr := widgets.DrawEdit(uiEvents, symbol)
@@ -242,30 +278,47 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					}
 
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
-				}
-			} else if selectCurrency {
-				switch e.ID {
-				case "j", "<Down>":
-					currencyWidget.ScrollDown()
-				case "k", "<Up>":
-					currencyWidget.ScrollUp()
-				case "<C-d>":
-					currencyWidget.ScrollHalfPageDown()
-				case "<C-u>":
-					currencyWidget.ScrollHalfPageUp()
-				case "<C-f>":
-					currencyWidget.ScrollPageDown()
-				case "<C-b>":
-					currencyWidget.ScrollPageUp()
-				case "g":
-					if previousKey == "g" {
-						currencyWidget.ScrollTop()
+				case "":
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					} else {
+						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
+							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
+							symbol = row[0]
+						}
 					}
-				case "<Home>":
-					currencyWidget.ScrollTop()
-				case "G", "<End>":
-					currencyWidget.ScrollBottom()
-				case "<Enter>":
+
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
+
+					id = coinIDs.CoinGeckoID
+
+					if id != "" {
+
+						inputStr := widgets.DrawEdit(uiEvents, symbol)
+
+						amt, err := strconv.ParseFloat(inputStr, 64)
+						if err == nil {
+							if amt > 0 {
+								portfolioMap[id] = amt
+							} else {
+								delete(portfolioMap, id)
+							}
+						}
+					}
+				}
+
+			case "<Enter>":
+				switch utilitySelected {
+				case "CURRENCY":
 					var err error
 
 					// Update Currency
@@ -284,119 +337,22 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
 						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
+					utilitySelected = ""
 
-					selectCurrency = false
+				case "CHANGE":
+					if changePercentWidget.SelectedRow < len(changePercentWidget.Rows) {
+						row := changePercentWidget.Rows[changePercentWidget.SelectedRow]
 
-				case "<Escape>":
-					selectCurrency = false
-				}
-				if selectCurrency {
-					ui.Render(currencyWidget)
-				}
-			} else if selectedTable != nil {
-				selectedTable.ShowCursor = true
+						changePercent = uw.DurationMap[row[0]]
 
-				switch e.ID {
-				case "j", "<Down>":
-					selectedTable.ScrollDown()
-				case "k", "<Up>":
-					selectedTable.ScrollUp()
-				case "<C-d>":
-					selectedTable.ScrollHalfPageDown()
-				case "<C-u>":
-					selectedTable.ScrollHalfPageUp()
-				case "<C-f>":
-					selectedTable.ScrollPageDown()
-				case "<C-b>":
-					selectedTable.ScrollPageUp()
-				case "g":
-					if previousKey == "g" {
-						selectedTable.ScrollTop()
+						coinHeader[3] = fmt.Sprintf("Change %%(%s)", changePercent)
 					}
-				case "<Home>":
-					selectedTable.ScrollTop()
-				case "G", "<End>":
-					selectedTable.ScrollBottom()
+					utilitySelected = ""
 
-				case "e": // Add/Edit coin in portfolio
-					id := ""
-					symbol := ""
-
-					// Get ID and symbol
-					if selectedTable == myPage.CoinTable {
-						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
-							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
-							symbol = row[1]
-						}
-					} else {
-						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
-							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
-							symbol = row[0]
-						}
-					}
-					id = coinIDs[symbol]
-
-					if id != "" {
-
-						inputStr := widgets.DrawEdit(uiEvents, symbol)
-
-						amt, err := strconv.ParseFloat(inputStr, 64)
-						if err == nil {
-							if amt > 0 {
-								portfolioMap[id] = amt
-							} else {
-								delete(portfolioMap, id)
-							}
-						}
-					}
-
-					ui.Clear()
-					updateUI()
-
-				case "s": // Add coin to favourites
-					id := ""
-					symbol := ""
-
-					// Get ID and symbol
-					if selectedTable == myPage.CoinTable {
-						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
-							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
-							symbol = row[1]
-						}
-					} else {
-						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
-							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
-							symbol = row[0]
-						}
-					}
-					id = coinIDs[symbol]
-					favourites[id] = true
-
-				case "S": // Remove coin from favourites
-					id := ""
-					symbol := ""
-
-					// Get ID and symbol
-					if selectedTable == myPage.CoinTable {
-						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
-							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
-							symbol = row[1]
-						}
-					} else {
-						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
-							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
-							symbol = row[0]
-						}
-					}
-					id = coinIDs[symbol]
-
-					delete(favourites, id)
-
-				case "<Enter>": // Serve per coin details
+				case "":
 					// pause UI and data send
 					pause()
 
-					id := ""
 					symbol := ""
 
 					// Get ID and symbol
@@ -411,9 +367,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							symbol = row[0]
 						}
 					}
-					id = coinIDs[symbol]
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
 
-					if id != "" {
+					coinCapId := coinIDs.CoinCapID
+					coinGeckoId := coinIDs.CoinGeckoID
+
+					if coinGeckoId != "" {
 						// Create new errorgroup for coin page
 						eg, coinCtx := errgroup.WithContext(ctx)
 						coinDataChannel := make(chan api.CoinData)
@@ -427,7 +388,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						eg.Go(func() error {
 							err := api.GetCoinHistory(
 								coinCtx,
-								id,
+								coinGeckoId,
 								intervalChannel,
 								coinDataChannel,
 							)
@@ -436,7 +397,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						// Serve Coin Asset data
 						eg.Go(func() error {
-							err := api.GetCoinAsset(coinCtx, id, coinDataChannel)
+							err := api.GetCoinDetails(coinCtx, coinGeckoId, coinDataChannel)
 							return err
 						})
 
@@ -450,17 +411,23 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						})
 
 						// Serve Live price of coin
-						eg.Go(func() error {
-							err := api.GetLivePrice(coinCtx, id, coinPriceChannel)
-							return err
-						})
+						if coinCapId != "" {
+							eg.Go(func() error {
+								api.GetLivePrice(coinCtx, coinCapId, coinPriceChannel)
+								// Send NA to indicate price is not being updated
+								go func() {
+									coinPriceChannel <- "NA"
+								}()
+								return nil
+							})
+						}
 
 						// Serve Visuals for coin
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
 								coinCtx,
-								id,
-								coinIDs,
+								coinGeckoId,
+								coinIDMap,
 								intervalChannel,
 								coinDataChannel,
 								coinPriceChannel,
@@ -481,9 +448,69 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					// unpause data send and receive
 					pause()
 					updateUI()
+					utilitySelected = ""
 				}
 
-				if selectedTable == myPage.CoinTable {
+				if utilitySelected == "" {
+					selectedTable.ShowCursor = false
+					selectedTable = myPage.CoinTable
+					selectedTable.ShowCursor = true
+				}
+
+			case "s":
+				if utilitySelected == "" {
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					} else {
+						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
+							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
+							symbol = row[0]
+						}
+					}
+					coinIDs := coinIDMap[symbol]
+					id = coinIDs.CoinGeckoID
+					favourites[id] = true
+				}
+
+			case "S":
+				if utilitySelected == "" {
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					} else {
+						if myPage.FavouritesTable.SelectedRow < len(myPage.FavouritesTable.Rows) {
+							row := myPage.FavouritesTable.Rows[myPage.FavouritesTable.SelectedRow]
+							symbol = row[0]
+						}
+					}
+
+					m.Lock()
+					coinIDs := coinIDMap[symbol]
+					m.Unlock()
+
+					id = coinIDs.CoinGeckoID
+
+					delete(favourites, id)
+				}
+			}
+
+			if utilitySelected == "" {
+				// Handle Sorting of tables
+				switch selectedTable {
+				case myPage.CoinTable:
 					switch e.ID {
 					// Sort Ascending
 					case "1", "2", "3", "4":
@@ -502,9 +529,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
 						coinSortAsc = false
 						utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
-
 					}
-				} else if selectedTable == myPage.FavouritesTable {
+
+				case myPage.FavouritesTable:
 					switch e.ID {
 					// Sort Ascending
 					case "1", "2":
@@ -525,13 +552,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 					}
 				}
+			}
 
-				ui.Render(myPage.Grid)
-				if previousKey == "g" {
-					previousKey = ""
-				} else {
-					previousKey = e.ID
-				}
+			updateUI()
+			if previousKey == "g" {
+				previousKey = ""
+			} else {
+				previousKey = e.ID
 			}
 
 		case data := <-dataChannel:
@@ -539,15 +566,20 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				// Update Top Coin data
 				for i, v := range data.TopCoinData {
 					// Set title to coin name
-					myPage.TopCoinGraphs[i].Title = " " + data.TopCoins[i] + " "
+					myPage.TopCoinGraphs[i].Title = fmt.Sprintf(" %s (7D) ", data.TopCoins[i])
 
 					// Update value graphs
 					myPage.TopCoinGraphs[i].Data["Value"] = v
 
 					// Set value, max & min values
-					myPage.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f %s", v[len(v)-1]/currencyVal, currency)
-					myPage.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", utils.MaxFloat64(v...)/currencyVal, currency)
-					myPage.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", utils.MinFloat64(v...)/currencyVal, currency)
+					maxValue := data.MaxPrices[i] / currencyVal
+					minValue := data.MinPrices[i] / currencyVal
+					// Current value is last point (cleaned) in graph + minimum value
+					value := (v[len(v)-1] + data.MinPrices[i]) / currencyVal
+
+					myPage.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f %s", value, currency)
+					myPage.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", maxValue, currency)
+					myPage.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", minValue, currency)
 				}
 			} else {
 				rows := [][]string{}
@@ -555,67 +587,55 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 				// Update currency headers
 				myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
+				myPage.CoinTable.Header[3] = fmt.Sprintf("Change %%(%s)", changePercent)
 				myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 
 				// Iterate over coin assets
-				for _, val := range data.Data {
+				for _, val := range data.AllCoinData {
 					// Get coin price
-					price := "NA"
-					p, err := strconv.ParseFloat(val.PriceUsd, 64)
-					if err == nil {
-						price = fmt.Sprintf("%.2f", p/currencyVal)
-					}
+					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
 					// Get change %
 					change := "NA"
-					c, err := strconv.ParseFloat(val.ChangePercent24Hr, 64)
-					if err == nil {
-						if c < 0 {
-							change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*c)
-						} else {
-							change = fmt.Sprintf("%s %.2f", UP_ARROW, c)
-						}
+					percentageChange := api.GetPercentageChangeForDuration(val, changePercent)
+					if percentageChange < 0 {
+						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*percentageChange)
+					} else {
+						change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
 					}
-
-					// Get supply and Max supply
-					s, err1 := strconv.ParseFloat(val.Supply, 64)
-					ms, err2 := strconv.ParseFloat(val.MaxSupply, 64)
 
 					units := ""
 					var supplyVals []float64
 					supplyData := ""
 
-					if err1 == nil && err2 == nil {
-						supplyVals, units = utils.RoundValues(s, ms)
+					if val.CirculatingSupply != 0.00 && val.TotalSupply != 0.00 {
+						supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 						supplyData = fmt.Sprintf("%.2f%s / %.2f%s", supplyVals[0], units, supplyVals[1], units)
 					} else {
-						if err1 != nil {
-							supplyVals, units = utils.RoundValues(s, ms)
+						if val.CirculatingSupply == 0.00 {
+							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 							supplyData = fmt.Sprintf("NA / %.2f%s", supplyVals[1], units)
 						} else {
-							supplyVals, units = utils.RoundValues(s, ms)
+							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
 							supplyData = fmt.Sprintf("%.2f%s / NA", supplyVals[0], units)
 						}
 					}
 
+					rank := fmt.Sprintf("%d", val.MarketCapRank)
+
 					// Aggregate data
 					rows = append(rows, []string{
-						val.Rank,
-						val.Symbol,
+						rank,
+						strings.ToUpper(val.Symbol),
 						price,
 						change,
 						supplyData,
 					})
 
-					// Update new coin ids
-					if _, ok := coinIDs[val.Symbol]; !ok {
-						coinIDs[val.Symbol] = val.Id
-					}
-
 					// Aggregate favourite data
-					if _, ok := favourites[val.Id]; ok {
+					if _, ok := favourites[val.ID]; ok {
 						favouritesData = append(favouritesData, []string{
-							val.Symbol,
+							strings.ToUpper(val.Symbol),
 							price,
 						})
 					}

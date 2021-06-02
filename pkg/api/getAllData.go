@@ -18,185 +18,160 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
+	gecko "github.com/superoo7/go-gecko/v3"
+	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
 
-// API Documentation can be found at https://docs.coincap.io/
+func getTopNCoins(n int) (geckoTypes.CoinsMarket, error) {
+	geckoClient := gecko.NewClient(nil)
 
-// Asset holds details of a single coin
-type Asset struct {
-	Id                string `json:"id"`
-	Rank              string `json:"rank"`
-	Symbol            string `json:"symbol"`
-	Name              string `json:"name"`
-	Supply            string `json:"supply"`
-	MaxSupply         string `json:"maxSupply"`
-	MarketCapUsd      string `json:"marketCapUsd"`
-	VolumeUsd24Hr     string `json:"volumeUsd24Hr"`
-	PriceUsd          string `json:"priceUsd"`
-	ChangePercent24Hr string `json:"changePercent24Hr"`
-	Vwap24Hr          string `json:"vwap24Hr"`
-	Explorer          string `json:"explorer"`
-}
+	vsCurrency := "usd"
+	ids := []string{}
 
-// AssetData is used to hold details of multiple coins and the price history
-// of top ranked coins along with their names
-type AssetData struct {
-	IsTopCoinData bool
-	Data          []Asset `json:"data"`
-	TimeStamp     uint    `json:"timestamp"`
-	TopCoinData   [][]float64
-	TopCoins      []string
-}
-
-// CoinPrice holds the price of a coin at a given time
-type CoinPrice struct {
-	Price     string `json:"priceUsd"`
-	Timestamp uint   `json:"time"`
-}
-
-// CoinHistory holds a slice of CoinPrice, as history of coin value
-type CoinHistory struct {
-	Data      []CoinPrice `json:"data"`
-	Timestamp uint        `json:"timestamp"`
-}
-
-// Get Assets contacts the 'api.coincap.io/v2/assets' endpoint to get asset
-// information of top 100 coins. It then serves this information through the
-// dataChannel
-func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
-	url := "https://api.coincap.io/v2/assets"
-	method := "GET"
-
-	// Create Request
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
-	if err != nil {
-		return err
+	if n > 1000 {
+		return nil, fmt.Errorf("page size limit is 1000")
 	}
 
-	// Init Client
-	client := &http.Client{}
+	perPage := n
+	page := 1
 
-	return utils.LoopTick(ctx, time.Duration(1)*time.Second, func() error {
+	sparkline := false
+
+	pcp := geckoTypes.PriceChangePercentageObject
+	priceChangePercentage := []string{pcp.PCP1h, pcp.PCP24h, pcp.PCP7d, pcp.PCP14d, pcp.PCP30d, pcp.PCP200d, pcp.PCP1y}
+
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
+
+	if err != nil {
+		return nil, err
+	}
+
+	coinData := *coinDataPointer
+
+	return coinData, nil
+}
+
+// GetPercentageChangeForDuration returns price change percentage given a
+// CoinsMarketItem and a duration, If the specified duration does not exist, 24
+// Hour change percent is returned
+func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duration string) float64 {
+
+	m := map[string]*float64{
+		"1h":   coinData.PriceChangePercentage1hInCurrency,
+		"24h":  coinData.PriceChangePercentage24hInCurrency,
+		"7d":   coinData.PriceChangePercentage7dInCurrency,
+		"14d":  coinData.PriceChangePercentage14dInCurrency,
+		"30d":  coinData.PriceChangePercentage30dInCurrency,
+		"200d": coinData.PriceChangePercentage200dInCurrency,
+		"1y":   coinData.PriceChangePercentage1yInCurrency,
+	}
+
+	if percentageDuration, isPresent := m[duration]; isPresent && percentageDuration != nil {
+		return *percentageDuration
+	}
+	return coinData.PriceChangePercentage24h
+}
+
+// Get Assets serves data about top 100 coins for the main page
+func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
+
+	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
+		var finalErr error = nil
 		data := AssetData{}
 
-		if *sendData {
-			// Send Request
-			res, err := client.Do(req)
-			if err != nil {
-				return err
+		defer func() {
+			if finalErr != nil {
+				errChan <- finalErr
 			}
-			defer res.Body.Close()
+		}()
 
-			// Read response
-			err = json.NewDecoder(res.Body).Decode(&data)
+		if *sendData {
+			// Fetch Data
+			coinsData, err := getTopNCoins(100)
 			if err != nil {
-				return err
+				finalErr = err
+				return
 			}
+			data.AllCoinData = coinsData
 
 			// Send Data
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				finalErr = ctx.Err()
+				return
 			case dataChannel <- data:
 			}
 		} else {
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				finalErr = ctx.Err()
+				return
 			default:
 			}
 		}
-
-		return nil
 	})
 }
 
-// GetTopCoinData first fetches the top 3 ranked coins by contacting the
-// 'api.coincap.io/v2/assets' endpoint. Following which, the history of each of
-// these coin is queried to the endpoint
-// 'api.coincap.io/v2/assets/{id}/history'. This history data is served
-//  on the dataChannel
+// GetTopCoinData serves 7 Day price history for top 3 (by market cap) coins
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
-	url := "https://api.coincap.io/v2/assets?limit=3"
-	method := "GET"
-
-	// Create Request
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
-	if err != nil {
-		return err
-	}
 
 	// Init Client
-	client := &http.Client{}
+	geckoClient := gecko.NewClient(nil)
 
-	return utils.LoopTick(ctx, time.Duration(5)*time.Second, func() error {
+	// Set Parameters
+	vsCurrency := "usd"
+	ids := []string{}
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	perPage := 3
+	page := 1
+	sparkline := true
+	priceChangePercentage := []string{}
+
+	return utils.LoopTick(ctx, time.Duration(1)*time.Minute, func(errChan chan error) {
+		var finalErr error = nil
 		data := AssetData{}
+
+		defer func() {
+			if finalErr != nil {
+				errChan <- finalErr
+			}
+		}()
 
 		if *sendData {
 
-			// Send Request
-			res, err := client.Do(req)
+			// Fetch Data
+			coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
 			if err != nil {
-				return err
-			}
-			defer res.Body.Close()
-
-			// Read response
-			err = json.NewDecoder(res.Body).Decode(&data)
-			if err != nil {
-				return err
+				finalErr = err
+				return
 			}
 
 			topCoinData := make([][]float64, 3)
 			topCoins := make([]string, 3)
+			maxPrices := make([]float64, 3)
+			minPrices := make([]float64, 3)
 
-			for i, val := range data.Data {
-				historyUrl := fmt.Sprintf("https://api.coincap.io/v2/assets/%s/history?interval=d1", val.Id)
-
-				// Create Request
-				req, err := http.NewRequestWithContext(ctx, method, historyUrl, nil)
-				if err != nil {
-					return err
-				}
-
-				// Fetch History
-				res, err := client.Do(req)
-				if err != nil {
-					return err
-				}
-				defer res.Body.Close()
-
-				historyData := CoinHistory{}
-
-				// Read response
-				err = json.NewDecoder(res.Body).Decode(&historyData)
-				if err != nil {
-					return err
-				}
-
-				// Aggregate price
-				price := []float64{}
-				for _, v := range historyData.Data {
-					p, err := strconv.ParseFloat(v.Price, 64)
-					if err != nil {
-						return err
-					}
-
-					price = append(price, p)
-				}
-
-				topCoinData[i] = price
+			// Set Prices, Max and Min
+			for i, val := range *coinDataPointer {
 				topCoins[i] = val.Name
+				topCoinData[i] = val.SparklineIn7d.Price
+				maxPrices[i] = utils.MaxFloat64(topCoinData[i]...)
+				minPrices[i] = utils.MinFloat64(topCoinData[i]...)
+
+				// Clean data for graph
+				for index := range topCoinData[i] {
+					topCoinData[i][index] -= minPrices[i]
+				}
 			}
 
 			// Aggregate data
+			data.MaxPrices = maxPrices
+			data.MinPrices = minPrices
 			data.TopCoinData = topCoinData
 			data.TopCoins = topCoins
 			data.IsTopCoinData = true
@@ -204,17 +179,17 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			// Send data
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				finalErr = ctx.Err()
+				return
 			case dataChannel <- data:
 			}
 		} else {
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				finalErr = ctx.Err()
+				return
 			default:
 			}
 		}
-
-		return nil
 	})
 }
