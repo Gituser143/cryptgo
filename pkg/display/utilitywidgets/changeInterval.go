@@ -23,6 +23,7 @@ import (
 
 var intervalRows [][]string = [][]string{{"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"90 Days"}, {"180 Days"}, {"1 Year"}, {"5 Years"}}
 
+// IntervalMap maps given interval string to format required by CoinGecko API
 var IntervalMap map[string]string = map[string]string{
 	"24 Hours": "24hr",
 	"7 Days":   "7d",
@@ -38,6 +39,8 @@ type ChangeIntervalDurationTable struct {
 	*widgets.Table
 }
 
+// NewChangeIntervalPage returns a pointer to an instance of
+// ChangeIntervalDurationTable
 func NewChangeIntervalPage() *ChangeIntervalDurationTable {
 	c := &ChangeIntervalDurationTable{
 		Table: widgets.NewTable(),

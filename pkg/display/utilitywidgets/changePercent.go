@@ -23,6 +23,7 @@ import (
 
 var durationRows [][]string = [][]string{{"1 Hour"}, {"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"200 Days"}, {"1 Year"}}
 
+// DurationMap maps duration strings to the format required by coinGecko API
 var DurationMap map[string]string = map[string]string{
 	"1 Hour":   "1h",
 	"24 Hours": "24h",
@@ -37,7 +38,8 @@ type ChangePercentageDurationTable struct {
 	*widgets.Table
 }
 
-// NewCurrencyPage creates, initialises and returns a pointer to an instance of CurrencyTable
+// NewCurrencyPage creates, initialises and returns a pointer to
+// an instance of CurrencyTable
 func NewChangePercentPage() *ChangePercentageDurationTable {
 	c := &ChangePercentageDurationTable{
 		Table: widgets.NewTable(),

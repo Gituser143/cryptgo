@@ -58,32 +58,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Variables for currency
 	currency := "USD $"
 	currencyVal := 1.0
-
-	changePercent := "24h"
-	changePercentWidget := uw.NewChangePercentPage()
-
 	currencyWidget := uw.NewCurrencyPage()
 
-	// variables for sorting CoinTable
-	coinSortIdx := -1
-	coinSortAsc := false
-	coinHeader := []string{
-		"Rank",
-		"Symbol",
-		fmt.Sprintf("Price (%s)", currency),
-		fmt.Sprintf("Change %%(%s)", changePercent),
-		"Supply / MaxSupply",
-	}
-
-	// variables for sorting FavouritesTable
-	favSortIdx := -1
-	favSortAsc := false
-	favHeader := []string{
-		"Symbol",
-		fmt.Sprintf("Price (%s)", currency),
-	}
-
-	previousKey := ""
+	// Variables for percentage change
+	changePercent := "24h"
+	changePercentWidget := uw.NewChangePercentPage()
 
 	// Initalise page and set selected table
 	myPage := NewAllCoinPage()
@@ -101,6 +80,27 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 	// Initiliase Portfolio Table
 	portfolioTable := uw.NewPortfolioPage()
+
+	// Variables for sorting CoinTable
+	coinSortIdx := -1
+	coinSortAsc := false
+	coinHeader := []string{
+		"Rank",
+		"Symbol",
+		fmt.Sprintf("Price (%s)", currency),
+		fmt.Sprintf("Change %%(%s)", changePercent),
+		"Supply / MaxSupply",
+	}
+
+	// Variables for sorting FavouritesTable
+	favSortIdx := -1
+	favSortAsc := false
+	favHeader := []string{
+		"Symbol",
+		fmt.Sprintf("Price (%s)", currency),
+	}
+
+	previousKey := ""
 
 	// Pause function to pause sending and receiving of data
 	pause := func() {
@@ -218,7 +218,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					utilitySelected = "PORTFOLIO"
 				}
 
-			// Navigations
+			// Handle Navigations
 			case "<Escape>":
 				utilitySelected = ""
 				selectedTable = myPage.CoinTable
@@ -245,7 +245,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			case "G", "<End>":
 				selectedTable.ScrollBottom()
 
-			// Actions
+			// Handle Actions
 			case "e":
 				switch utilitySelected {
 				case "PORTFOLIO":
@@ -397,7 +397,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						// Serve Coin Asset data
 						eg.Go(func() error {
-							err := api.GetCoinAsset(coinCtx, coinGeckoId, coinDataChannel)
+							err := api.GetCoinDetails(coinCtx, coinGeckoId, coinDataChannel)
 							return err
 						})
 
@@ -414,6 +414,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						if coinCapId != "" {
 							eg.Go(func() error {
 								api.GetLivePrice(coinCtx, coinCapId, coinPriceChannel)
+								// Send NA to indicate price is not being updated
+								go func() {
+									coinPriceChannel <- "NA"
+								}()
 								return nil
 							})
 						}

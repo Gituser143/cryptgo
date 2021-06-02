@@ -337,10 +337,16 @@ func DisplayCoin(
 
 		case data := <-priceChannel:
 			// Update live price
-			p, _ := strconv.ParseFloat(data, 64)
-			if utilitySelected == "" {
-				myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f", p/currencyVal)
-				ui.Render(myPage.PriceBox)
+			if data == "NA" {
+				if utilitySelected == "" {
+					myPage.PriceBox.Rows[0][0] = data
+				}
+			} else {
+				p, _ := strconv.ParseFloat(data, 64)
+				if utilitySelected == "" {
+					myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f", p/currencyVal)
+					ui.Render(myPage.PriceBox)
+				}
 			}
 
 		case data := <-dataChannel:

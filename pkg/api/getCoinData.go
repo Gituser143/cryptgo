@@ -33,8 +33,6 @@ const (
 	DOWN_ARROW = "▼"
 )
 
-// API Documentation can be found at https://docs.coincap.io/
-
 // GetFavouritePrices gets coin prices for coins specified by favourites.
 // This data is returned on the dataChannel.
 func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataChannel chan CoinData) error {
@@ -61,20 +59,22 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 			}
 		}()
 
+		// Get Coin IDs
 		IDs := []string{}
-
 		for id := range favourites {
 			IDs = append(IDs, id)
 		}
 
 		perPage := len(IDs)
 
+		// Fetch Data
 		coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, IDs, order, perPage, page, sparkline, priceChangePercentage)
 		if err != nil {
 			finalErr = err
 			return
 		}
 
+		// Set Prices
 		for _, val := range *coinDataPointer {
 			symbol := strings.ToUpper(val.Symbol)
 			favouriteData[symbol] = val.CurrentPrice
@@ -99,6 +99,7 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 
 // GetCoinHistory gets price history of a coin specified by id, for an interval
 // received through the interval channel.
+// The default interval is set as 24 Hours
 func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string, dataChannel chan CoinData) error {
 
 	intervalToDuration := map[string]string{
@@ -115,6 +116,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 	// Set Default Interval to 1 day
 	i := "24hr"
 
+	// Init Client
 	geckoClient := gecko.NewClient(nil)
 
 	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
@@ -137,6 +139,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 			break
 		}
 
+		// Get interval duration and fetch data
 		intervalDuration := intervalToDuration[i]
 		data, err := geckoClient.CoinsIDMarketChart(id, "usd", intervalDuration)
 		if err != nil {
@@ -146,7 +149,6 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 
 		// Aggregate price history
 		price := []float64{}
-
 		for _, v := range *data.Prices {
 			price = append(price, float64(v[1]))
 		}
@@ -178,11 +180,13 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 	})
 }
 
-// GetCoinAsset fetches asset data for a coin specified by id
+// GetCoinDetails fetches details for a coin specified by id
 // and sends the data on dataChannel
-func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) error {
+func GetCoinDetails(ctx context.Context, id string, dataChannel chan CoinData) error {
 	// Init client
 	geckoClient := gecko.NewClient(nil)
+
+	// Set Parameters
 	localization := false
 	tickers := false
 	marketData := true
@@ -199,14 +203,15 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			}
 		}()
 
+		// Fetch Data
 		coinData, err := geckoClient.CoinsID(id, localization, tickers, marketData, communityData, developerData, sparkline)
 		if err != nil {
 			finalErr = err
 			return
 		}
 
+		// Get Explorer links
 		explorerLinks := [][]string{}
-
 		for key, val := range *coinData.Links {
 			if key == "blockchain_site" {
 				sites := val.([]interface{})
@@ -219,11 +224,13 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			}
 		}
 
+		// Get Total Supply if coin has it
 		totalSupply := 0.0
 		if coinData.MarketData.TotalSupply != nil {
 			totalSupply = *coinData.MarketData.TotalSupply
 		}
 
+		// Get Change Percents
 		changePercents := [][]string{
 			{"24H", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage24h)},
 			{"7D", fmt.Sprintf("%.2f", coinData.MarketData.PriceChangePercentage7d)},
@@ -244,6 +251,7 @@ func GetCoinAsset(ctx context.Context, id string, dataChannel chan CoinData) err
 			changePercents[i][1] = change
 		}
 
+		// Get ATH, ATL and Last update times
 		timeLayout := "2006-01-02T15:04:05.000Z"
 		tATHDate, err := time.Parse(timeLayout, coinData.MarketData.ATHDate["usd"])
 		if err != nil {

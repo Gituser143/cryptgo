@@ -62,3 +62,34 @@ type AssetData struct {
 	TopCoins      []string
 	AllCoinData   geckoTypes.CoinsMarket
 }
+
+// CoinCapAsset is used to marshal asset data from coinCap APIs
+type CoinCapAsset struct {
+	ID                string `json:"id"`
+	Rank              string `json:"rank"`
+	Symbol            string `json:"symbol"`
+	Name              string `json:"name"`
+	Supply            string `json:"supply"`
+	MaxSupply         string `json:"maxSupply"`
+	MarketCapUsd      string `json:"marketCapUsd"`
+	VolumeUsd24Hr     string `json:"volumeUsd24Hr"`
+	PriceUsd          string `json:"priceUsd"`
+	ChangePercent24Hr string `json:"changePercent24Hr"`
+	Vwap24Hr          string `json:"vwap24Hr"`
+	Explorer          string `json:"explorer"`
+}
+
+// CoinCapData is used to marshall multiple assets from CoinCap APIs
+type CoinCapData struct {
+	Data      []CoinCapAsset `json:"data"`
+	Timestamp uint           `json:"timestamp"`
+}
+
+// CoinID holds the ID of a coin as stored in CoinGecko and CoinCap
+type CoinID struct {
+	CoinGeckoID string
+	CoinCapID   string
+}
+
+// CoinIDMap maps a symbol to it's respective ID
+type CoinIDMap map[string]CoinID

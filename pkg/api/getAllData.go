@@ -56,6 +56,9 @@ func getTopNCoins(n int) (geckoTypes.CoinsMarket, error) {
 	return coinData, nil
 }
 
+// GetPercentageChangeForDuration returns price change percentage given a
+// CoinsMarketItem and a duration, If the specified duration does not exist, 24
+// Hour change percent is returned
 func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duration string) float64 {
 
 	m := map[string]*float64{
@@ -88,13 +91,13 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 		}()
 
 		if *sendData {
-
+			// Fetch Data
 			coinsData, err := getTopNCoins(100)
-			data.AllCoinData = coinsData
 			if err != nil {
 				finalErr = err
 				return
 			}
+			data.AllCoinData = coinsData
 
 			// Send Data
 			select {
@@ -114,7 +117,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 	})
 }
 
-// GetTopCoinData serves 7 Day price history for top 3 coins (vby market cap)
+// GetTopCoinData serves 7 Day price history for top 3 (by market cap) coins
 func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
 	// Init Client
@@ -141,8 +144,8 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 
 		if *sendData {
 
+			// Fetch Data
 			coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
-
 			if err != nil {
 				finalErr = err
 				return
@@ -153,6 +156,7 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			maxPrices := make([]float64, 3)
 			minPrices := make([]float64, 3)
 
+			// Set Prices, Max and Min
 			for i, val := range *coinDataPointer {
 				topCoins[i] = val.Name
 				topCoinData[i] = val.SparklineIn7d.Price
