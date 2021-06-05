@@ -423,6 +423,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							})
 						}
 
+						utils.SaveMetadata(favourites, currency, portfolioMap)
+
 						// Serve Visuals for coin
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
@@ -444,6 +446,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 								return err
 							}
 						}
+
+						currency, currencyVal = utils.GetCurrency()
 
 					}
 					// unpause data send and receive

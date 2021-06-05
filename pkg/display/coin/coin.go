@@ -139,6 +139,7 @@ func DisplayCoin(
 					selectedTable.ShowCursor = true
 					updateUI()
 				} else {
+					utils.SaveMetadata(favourites, currency, portfolioMap)
 					return fmt.Errorf("UI Closed")
 				}
 
