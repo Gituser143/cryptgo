@@ -56,8 +56,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	}()
 
 	// Variables for currency
-	currency := "USD $"
-	currencyVal := 1.0
+	currency, currencyVal := utils.GetCurrency()
 	currencyWidget := uw.NewCurrencyPage()
 
 	// Variables for percentage change
@@ -72,7 +71,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Initialise favourites and portfolio
 	portfolioMap := utils.GetPortfolio()
 	favourites := utils.GetFavourites()
-	defer utils.SaveMetadata(favourites, currency, portfolioMap)
+	defer func() {
+		utils.SaveMetadata(favourites, currency, portfolioMap)
+	}()
 
 	// Initialise Help Menu
 	help := widgets.NewHelpMenu()
