@@ -145,10 +145,6 @@ func GetCurrency() (string, float64) {
 	currency := metadata.Currency
 	currencyVal := 1.0
 
-	if err != nil {
-		return "USD $", 1.0
-	}
-
 	url := "https://api.coincap.io/v2/rates"
 	method := "GET"
 
@@ -180,10 +176,7 @@ func GetCurrency() (string, float64) {
 	for _, c := range data.Data {
 		// Get currency rate
 		rate, err := strconv.ParseFloat(c.RateUSD, 64)
-		if err != nil {
-			continue
-		}
-		if currency == fmt.Sprintf("%s %s", c.Symbol, c.CurrencySymbol) {
+		if err == nil && currency == fmt.Sprintf("%s %s", c.Symbol, c.CurrencySymbol) {
 			currencyVal = rate
 		}
 	}
