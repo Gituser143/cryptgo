@@ -19,6 +19,7 @@ package allcoin
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -78,6 +79,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	help := widgets.NewHelpMenu()
 	help.SelectHelpMenu("ALL")
 
+	// Initialise Search Menu
+	search := widgets.NewSearchMenu()
+	search.Reset()
+
 	// Initiliase Portfolio Table
 	portfolioTable := uw.NewPortfolioPage()
 
@@ -130,6 +135,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		case "CHANGE":
 			changePercentWidget.Resize(w, h)
 			ui.Render(changePercentWidget)
+		case "SEARCH":
+			search.Resize(w, h)
+			ui.Render(search)
 		default:
 			ui.Render(myPage.Grid)
 		}
@@ -221,6 +229,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			// Handle Navigations
 			case "<Escape>":
 				utilitySelected = ""
+				search.Reset()
 				selectedTable = myPage.CoinTable
 				selectedTable.ShowCursor = true
 				updateUI()
@@ -449,6 +458,118 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					pause()
 					updateUI()
 					utilitySelected = ""
+
+				case "SEARCH":
+					// if currently searching
+					if search.Table.SelectedRow == 0 {
+						searchList := [][]string{}
+						for symbol, coinID := range coinIDMap {
+							// check if symbol has prefix with search query,
+							//       if coinID exists for this search query
+							if strings.HasPrefix(symbol, search.SearchString) && coinID.CoinCapID != "" && coinID.CoinGeckoID != "" {
+								searchList = append(searchList, []string{symbol})
+							}
+						}
+						if len(searchList) > 0 {
+							// sort lexicographically
+							sort.Slice(searchList[:], func(i, j int) bool {
+								return searchList[i][0] < searchList[j][0]
+							})
+							search.SearchList = searchList
+							search.SymbolDoesNotExist = false
+						} else {
+							search.SymbolDoesNotExist = true
+							search.SearchList = [][]string{}
+						}
+					} else {
+						// else user has chosen a sumbol
+						symbol := search.SelectedItem
+						m.Lock()
+						coinIDs := coinIDMap[symbol]
+						m.Unlock()
+
+						coinCapId := coinIDs.CoinCapID
+						coinGeckoId := coinIDs.CoinGeckoID
+
+						if coinGeckoId != "" {
+							// Create new errorgroup for coin page
+							eg, coinCtx := errgroup.WithContext(ctx)
+							coinDataChannel := make(chan api.CoinData)
+							coinPriceChannel := make(chan string)
+							intervalChannel := make(chan string)
+
+							// Clear UI
+							ui.Clear()
+
+							// Serve Coin Price History
+							eg.Go(func() error {
+								err := api.GetCoinHistory(
+									coinCtx,
+									coinGeckoId,
+									intervalChannel,
+									coinDataChannel,
+								)
+								return err
+							})
+
+							// Serve Coin Asset data
+							eg.Go(func() error {
+								err := api.GetCoinDetails(coinCtx, coinGeckoId, coinDataChannel)
+								return err
+							})
+
+							// Serve favourie coin prices
+							eg.Go(func() error {
+								err := api.GetFavouritePrices(coinCtx,
+									favourites,
+									coinDataChannel,
+								)
+								return err
+							})
+
+							// Serve Live price of coin
+							if coinCapId != "" {
+								eg.Go(func() error {
+									api.GetLivePrice(coinCtx, coinCapId, coinPriceChannel)
+									// Send NA to indicate price is not being updated
+									go func() {
+										coinPriceChannel <- "NA"
+									}()
+									return nil
+								})
+							}
+
+							// Serve Visuals for coin
+							eg.Go(func() error {
+								err := coin.DisplayCoin(
+									coinCtx,
+									coinGeckoId,
+									coinIDMap,
+									intervalChannel,
+									coinDataChannel,
+									coinPriceChannel,
+									uiEvents,
+								)
+								return err
+							})
+
+							if err := eg.Wait(); err != nil {
+								if err.Error() != "UI Closed" {
+									// Unpause
+									pause()
+									return err
+								}
+							}
+
+						}
+						// unpause data send and receive
+						pause()
+						updateUI()
+						search.Reset()
+						utilitySelected = ""
+
+					}
+
 				}
 
 				if utilitySelected == "" {
@@ -505,6 +626,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 					delete(favourites, id)
 				}
+
+			case "<C-s>":
+				selectedTable.ShowCursor = false
+				selectedTable = search.Table
+				selectedTable.ShowCursor = true
+				utilitySelected = "SEARCH"
+				updateUI()
 			}
 
 			if utilitySelected == "" {
@@ -551,6 +679,22 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						favSortAsc = false
 						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 					}
+				}
+			}
+
+			if utilitySelected == "SEARCH" {
+				if e.ID == "<Backspace>" {
+					searchStrLen := len(search.SearchString)
+					if searchStrLen > 0 {
+						search.SearchString = search.SearchString[:searchStrLen-1]
+					}
+					search.SearchList = [][]string{}
+					search.SymbolDoesNotExist = false // reset red color on change in search string
+				} else if len(e.ID) == 1 && len(search.SearchString) < 20 && search.Table.SelectedRow == 0 {
+					// check if alphabet
+					search.SearchString += strings.ToUpper(e.ID)
+					search.SymbolDoesNotExist = false
+					search.SearchList = [][]string{}
 				}
 			}
 
