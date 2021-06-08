@@ -81,9 +81,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 	defer func() {
 		currencyIDLock.Lock()
-		currenctID := currencyIDMap[currency]
+		currencyID := currencyIDMap[currency]
 		currencyIDLock.Unlock()
-		utils.SaveMetadata(favourites, currenctID, portfolioMap)
+		utils.SaveMetadata(favourites, currencyID, portfolioMap)
 	}()
 
 	// Initialise Help Menu
@@ -435,9 +435,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						}
 
 						currencyIDLock.Lock()
-						currenctID := currencyIDMap[currency]
+						currencyID := currencyIDMap[currency]
 						currencyIDLock.Unlock()
-						utils.SaveMetadata(favourites, currenctID, portfolioMap)
+						utils.SaveMetadata(favourites, currencyID, portfolioMap)
 
 						// Serve Visuals for coin
 						eg.Go(func() error {

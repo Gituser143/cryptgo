@@ -18,60 +18,13 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"sync"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	gecko "github.com/superoo7/go-gecko/v3"
 	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
-
-var CurrencyIDMutex sync.Mutex
-
-func NewCurencyIDMap() (CurrencyIDMap, *sync.Mutex) {
-	c := make(CurrencyIDMap)
-	return c, &CurrencyIDMutex
-}
-
-func (c *CurrencyIDMap) Populate() {
-	url := "https://api.coincap.io/v2/rates"
-	method := "GET"
-
-	client := &http.Client{}
-
-	// Create Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return
-	}
-
-	// Send Request and get response
-	res, err := client.Do(req)
-	if err != nil {
-		res.Body.Close()
-		return
-	}
-
-	data := utils.AllCurrencyData{}
-
-	// Read response
-	err = json.NewDecoder(res.Body).Decode(&data)
-	res.Body.Close()
-	if err != nil {
-		return
-	}
-
-	// Iterate over currencies
-	for _, curr := range data.Data {
-		// Get currency rate
-		currency := fmt.Sprintf("%s %s", curr.Symbol, curr.CurrencySymbol)
-		currencyID := curr.ID
-		(*c)[currency] = currencyID
-	}
-}
 
 func getTopNCoins(n int) (geckoTypes.CoinsMarket, error) {
 	geckoClient := gecko.NewClient(nil)

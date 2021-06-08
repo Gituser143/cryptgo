@@ -82,9 +82,9 @@ func DisplayCoin(
 	portfolioMap := utils.GetPortfolio()
 	defer func() {
 		currencyIDLock.Lock()
-		currenctID := currencyIDMap[currency]
+		currencyID := currencyIDMap[currency]
 		currencyIDLock.Unlock()
-		utils.SaveMetadata(favourites, currenctID, portfolioMap)
+		utils.SaveMetadata(favourites, currencyID, portfolioMap)
 	}()
 
 	// Initiliase Portfolio Table
@@ -149,10 +149,6 @@ func DisplayCoin(
 					selectedTable.ShowCursor = true
 					updateUI()
 				} else {
-					currencyIDLock.Lock()
-					currenctID := currencyIDMap[currency]
-					currencyIDLock.Unlock()
-					utils.SaveMetadata(favourites, currenctID, portfolioMap)
 					return fmt.Errorf("UI Closed")
 				}
 
