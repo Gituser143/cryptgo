@@ -50,8 +50,14 @@ func DisplayCoin(
 	myPage := NewCoinPage()
 
 	// variables for currency
-	currency := "USD $"
-	currencyVal := 1.0
+	currencyIDMap, currencyIDLock := api.NewCurencyIDMap()
+	go func() {
+		currencyIDLock.Lock()
+		currencyIDMap.Populate()
+		currencyIDLock.Unlock()
+	}()
+
+	currency, currencyVal := utils.GetCurrency()
 	currencyWidget := uw.NewCurrencyPage()
 
 	// variables for graph interval
@@ -74,7 +80,12 @@ func DisplayCoin(
 	// Initialise portfolio
 	favourites := utils.GetFavourites()
 	portfolioMap := utils.GetPortfolio()
-	defer utils.SaveMetadata(favourites, currency, portfolioMap)
+	defer func() {
+		currencyIDLock.Lock()
+		currencyID := currencyIDMap[currency]
+		currencyIDLock.Unlock()
+		utils.SaveMetadata(favourites, currencyID, portfolioMap)
+	}()
 
 	// Initiliase Portfolio Table
 	portfolioTable := uw.NewPortfolioPage()

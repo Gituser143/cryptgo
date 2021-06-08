@@ -56,8 +56,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	}()
 
 	// Variables for currency
-	currency := "USD $"
-	currencyVal := 1.0
+	currencyIDMap, currencyIDLock := api.NewCurencyIDMap()
+	go func() {
+		currencyIDLock.Lock()
+		currencyIDMap.Populate()
+		currencyIDLock.Unlock()
+	}()
+
+	currency, currencyVal := utils.GetCurrency()
 	currencyWidget := uw.NewCurrencyPage()
 
 	// Variables for percentage change
@@ -72,7 +78,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Initialise favourites and portfolio
 	portfolioMap := utils.GetPortfolio()
 	favourites := utils.GetFavourites()
-	defer utils.SaveMetadata(favourites, currency, portfolioMap)
+
+	defer func() {
+		currencyIDLock.Lock()
+		currencyID := currencyIDMap[currency]
+		currencyIDLock.Unlock()
+		utils.SaveMetadata(favourites, currencyID, portfolioMap)
+	}()
 
 	// Initialise Help Menu
 	help := widgets.NewHelpMenu()
@@ -422,6 +434,11 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							})
 						}
 
+						currencyIDLock.Lock()
+						currencyID := currencyIDMap[currency]
+						currencyIDLock.Unlock()
+						utils.SaveMetadata(favourites, currencyID, portfolioMap)
+
 						// Serve Visuals for coin
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
@@ -443,6 +460,8 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 								return err
 							}
 						}
+
+						currency, currencyVal = utils.GetCurrency()
 
 					}
 					// unpause data send and receive

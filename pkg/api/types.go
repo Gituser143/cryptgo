@@ -93,3 +93,5 @@ type CoinID struct {
 
 // CoinIDMap maps a symbol to it's respective ID
 type CoinIDMap map[string]CoinID
+
+type CurrencyIDMap map[string]string

@@ -18,13 +18,33 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"os"
+	"strconv"
 )
 
 type Metadata struct {
 	Favourites map[string]bool    `json:"favourites"`
 	Currency   string             `json:"currency"`
 	Portfolio  map[string]float64 `json:"portfolio"`
+}
+
+type Currency struct {
+	ID             string `json:"id"`
+	Symbol         string `json:"symbol"`
+	CurrencySymbol string `json:"currencySymbol"`
+	Type           string `json:"type"`
+	RateUSD        string `json:"rateUsd"`
+}
+
+type CurrencyData struct {
+	Data Currency `json:"data"`
+}
+
+type AllCurrencyData struct {
+	Data      []Currency `json:"data"`
+	Timestamp uint       `json:"timestamp"`
 }
 
 // GetFavourites reads stored favourite coin details from
@@ -97,6 +117,71 @@ func GetPortfolio() map[string]float64 {
 	}
 
 	return map[string]float64{}
+}
+
+func GetCurrency() (string, float64) {
+	metadata := Metadata{}
+
+	// Get home directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "USD $", 1.0
+	}
+
+	// Check if metadta file exists
+	configPath := homeDir + "/.cryptgo-data.json"
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return "USD $", 1.0
+	}
+
+	// Open file
+	configFile, err := os.Open(configPath)
+	if err != nil {
+		return "USD $", 1.0
+	}
+
+	// Read content
+	err = json.NewDecoder(configFile).Decode(&metadata)
+	if err != nil {
+		return "USD $", 1.0
+	}
+
+	currencyID := metadata.Currency
+
+	url := fmt.Sprintf("https://api.coincap.io/v2/rates/%s", currencyID)
+	method := "GET"
+
+	client := &http.Client{}
+
+	// Create Request
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return "USD $", 1.0
+	}
+
+	// Send Request and get response
+	res, err := client.Do(req)
+	if err != nil {
+		res.Body.Close()
+		return "USD $", 1.0
+	}
+
+	data := CurrencyData{}
+
+	// Read response
+	err = json.NewDecoder(res.Body).Decode(&data)
+	res.Body.Close()
+	if err != nil {
+		return "USD $", 1.0
+	}
+
+	rate, err := strconv.ParseFloat(data.Data.RateUSD, 64)
+	if err != nil {
+		return "USD $", 1.0
+	}
+	currency := fmt.Sprintf("%s %s", data.Data.Symbol, data.Data.CurrencySymbol)
+
+	return currency, rate
 }
 
 // SaveMetadata exports favourites, currency and portfolio to disk.
