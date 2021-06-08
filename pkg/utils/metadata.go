@@ -35,7 +35,11 @@ type Currency struct {
 	Symbol         string `json:"symbol"`
 	CurrencySymbol string `json:"currencySymbol"`
 	Type           string `json:"type"`
-	RateUSD        string `json:"rateUSD"`
+	RateUSD        string `json:"rateUsd"`
+}
+
+type CurrencyData struct {
+	Data Currency `json:"data"`
 }
 
 type AllCurrencyData struct {
@@ -142,10 +146,9 @@ func GetCurrency() (string, float64) {
 		return "USD $", 1.0
 	}
 
-	currency := metadata.Currency
-	currencyVal := 1.0
+	currencyID := metadata.Currency
 
-	url := "https://api.coincap.io/v2/rates"
+	url := fmt.Sprintf("https://api.coincap.io/v2/rates/%s", currencyID)
 	method := "GET"
 
 	client := &http.Client{}
@@ -163,7 +166,7 @@ func GetCurrency() (string, float64) {
 		return "USD $", 1.0
 	}
 
-	data := AllCurrencyData{}
+	data := CurrencyData{}
 
 	// Read response
 	err = json.NewDecoder(res.Body).Decode(&data)
@@ -172,16 +175,13 @@ func GetCurrency() (string, float64) {
 		return "USD $", 1.0
 	}
 
-	// Iterate over currencies
-	for _, c := range data.Data {
-		// Get currency rate
-		rate, err := strconv.ParseFloat(c.RateUSD, 64)
-		if err == nil && currency == fmt.Sprintf("%s %s", c.Symbol, c.CurrencySymbol) {
-			currencyVal = rate
-		}
+	rate, err := strconv.ParseFloat(data.Data.RateUSD, 64)
+	if err != nil {
+		return "USD $", 1.0
 	}
+	currency := fmt.Sprintf("%s %s", data.Data.Symbol, data.Data.CurrencySymbol)
 
-	return currency, currencyVal
+	return currency, rate
 }
 
 // SaveMetadata exports favourites, currency and portfolio to disk.

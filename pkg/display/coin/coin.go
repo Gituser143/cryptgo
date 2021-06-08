@@ -50,6 +50,13 @@ func DisplayCoin(
 	myPage := NewCoinPage()
 
 	// variables for currency
+	currencyIDMap, currencyIDLock := api.NewCurencyIDMap()
+	go func() {
+		currencyIDLock.Lock()
+		currencyIDMap.Populate()
+		currencyIDLock.Unlock()
+	}()
+
 	currency, currencyVal := utils.GetCurrency()
 	currencyWidget := uw.NewCurrencyPage()
 
@@ -74,7 +81,10 @@ func DisplayCoin(
 	favourites := utils.GetFavourites()
 	portfolioMap := utils.GetPortfolio()
 	defer func() {
-		utils.SaveMetadata(favourites, currency, portfolioMap)
+		currencyIDLock.Lock()
+		currenctID := currencyIDMap[currency]
+		currencyIDLock.Unlock()
+		utils.SaveMetadata(favourites, currenctID, portfolioMap)
 	}()
 
 	// Initiliase Portfolio Table
@@ -139,7 +149,10 @@ func DisplayCoin(
 					selectedTable.ShowCursor = true
 					updateUI()
 				} else {
-					utils.SaveMetadata(favourites, currency, portfolioMap)
+					currencyIDLock.Lock()
+					currenctID := currencyIDMap[currency]
+					currencyIDLock.Unlock()
+					utils.SaveMetadata(favourites, currenctID, portfolioMap)
 					return fmt.Errorf("UI Closed")
 				}
 

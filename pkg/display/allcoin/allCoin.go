@@ -56,6 +56,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	}()
 
 	// Variables for currency
+	currencyIDMap, currencyIDLock := api.NewCurencyIDMap()
+	go func() {
+		currencyIDLock.Lock()
+		currencyIDMap.Populate()
+		currencyIDLock.Unlock()
+	}()
+
 	currency, currencyVal := utils.GetCurrency()
 	currencyWidget := uw.NewCurrencyPage()
 
@@ -71,8 +78,12 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Initialise favourites and portfolio
 	portfolioMap := utils.GetPortfolio()
 	favourites := utils.GetFavourites()
+
 	defer func() {
-		utils.SaveMetadata(favourites, currency, portfolioMap)
+		currencyIDLock.Lock()
+		currenctID := currencyIDMap[currency]
+		currencyIDLock.Unlock()
+		utils.SaveMetadata(favourites, currenctID, portfolioMap)
 	}()
 
 	// Initialise Help Menu
@@ -423,7 +434,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							})
 						}
 
-						utils.SaveMetadata(favourites, currency, portfolioMap)
+						currencyIDLock.Lock()
+						currenctID := currencyIDMap[currency]
+						currencyIDLock.Unlock()
+						utils.SaveMetadata(favourites, currenctID, portfolioMap)
 
 						// Serve Visuals for coin
 						eg.Go(func() error {
