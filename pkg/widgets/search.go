@@ -32,7 +32,7 @@ type SearchMenu struct {
 	*Table
 	IsFull             bool
 	SymbolDoesNotExist bool
-	SearchList         [][]string
+	SearchData         [][]string
 }
 
 // NewSearchMenu is a constructor for the SearchMenu type
@@ -45,25 +45,26 @@ func NewSearchMenu() *SearchMenu {
 // Reset resets a search menu to its default values
 func (search *SearchMenu) Reset() {
 	search.SearchString = ""
-	search.SearchList = [][]string{}
+	search.SearchData = [][]string{}
 	search.IsFull = true
 	search.SymbolDoesNotExist = false
-	search.Table.SelectedRow = 0
+	search.SelectedRow = 0
+	search.Header = []string{}
 }
 
 func (search *SearchMenu) Resize(termWidth, termHeight int) {
-	x1, y1 := termWidth/3, termHeight/4
-	x2, y2 := 2*termWidth/3, 3*termHeight/4
+	x1, y1 := termWidth/4, termHeight/4
+	x2, y2 := 3*termWidth/4, 3*termHeight/4
 	search.Table.SetRect(x1, y1, x2, y2)
 }
 
 func (search *SearchMenu) Draw(buf *ui.Buffer) {
 	search.Table.Title = " Search "
-	search.Table.Header = []string{" "}
+
 	if search.SymbolDoesNotExist {
 		search.Table.Header = []string{fmt.Sprintf(" Coin with symbol %s does not exist", search.SearchString)}
-	} else if len(search.SearchList) > 0 {
-		search.Table.Header = []string{fmt.Sprintf(" %v results", len(search.SearchList))}
+	} else if len(search.SearchData) > 0 {
+		search.Table.Header = []string{fmt.Sprintf(" %v results", len(search.SearchData))}
 	}
 
 	search.IsFull = !search.IsFull
@@ -73,8 +74,9 @@ func (search *SearchMenu) Draw(buf *ui.Buffer) {
 		suffix = FULL_BLOCK
 	}
 
-	input := [][]string{{fmt.Sprintf(" ~ %s%s", search.SearchString, suffix)}}
-	search.Table.Rows = append(input, search.SearchList...)
+	input := [][]string{{fmt.Sprintf(" ~ %s%s", search.SearchString, suffix), "", ""}, {"SYMBOL", "NAME", "PRICE"}}
+
+	search.Table.Rows = append(input, search.SearchData...)
 
 	search.Table.BorderStyle.Fg = ui.ColorCyan
 	search.Table.BorderStyle.Bg = ui.ColorClear
@@ -87,7 +89,7 @@ func (search *SearchMenu) Draw(buf *ui.Buffer) {
 	search.Table.RowStyle.Bg = ui.ColorClear
 	search.Table.ColResizer = func() {
 		x := search.Table.Inner.Dx()
-		search.Table.ColWidths = []int{x}
+		search.Table.ColWidths = []int{x / 4, x / 2, x / 4}
 	}
 	search.Table.Draw(buf)
 }

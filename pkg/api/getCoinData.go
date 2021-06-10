@@ -19,6 +19,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -95,6 +96,60 @@ func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataCha
 		}
 
 	})
+}
+
+// GetSearchedPrices gets coin prices for coins in search list.
+// This data is returned on the dataChannel.
+func GetSearchedPrices(ctx context.Context, searchList []string, coinIDMap CoinIDMap, searchChannel chan []CoinSearchDetails) error {
+
+	// Init Client
+	geckoClient := gecko.NewClient(nil)
+
+	// Set Parameters
+	vsCurrency := "usd"
+	order := geckoTypes.OrderTypeObject.MarketCapDesc
+	page := 1
+	sparkline := true
+	priceChangePercentage := []string{}
+
+	var finalErr error
+
+	var searchDetails []CoinSearchDetails
+
+	// Get Coin IDs
+	IDs := []string{}
+	for _, symbol := range searchList {
+		id := coinIDMap[symbol].CoinGeckoID
+		IDs = append(IDs, id)
+	}
+
+	perPage := len(IDs)
+
+	// Fetch Data
+	coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, IDs, order, perPage, page, sparkline, priceChangePercentage)
+	if err != nil {
+		finalErr = err
+		return finalErr
+	}
+
+	// Set Prices
+	for _, val := range *coinDataPointer {
+		searchDetails = append(searchDetails, CoinSearchDetails{Name: val.Name, Symbol: strings.ToUpper(val.Symbol), Price: val.CurrentPrice})
+	}
+
+	// sort lexicographically
+	sort.Slice(searchDetails[:], func(i, j int) bool {
+		return searchDetails[i].Symbol < searchDetails[j].Symbol
+	})
+
+	// Send data
+	select {
+	case <-ctx.Done():
+		finalErr = ctx.Err()
+		return finalErr
+	case searchChannel <- searchDetails:
+	}
+	return nil
 }
 
 // GetCoinHistory gets price history of a coin specified by id, for an interval

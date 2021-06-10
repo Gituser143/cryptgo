@@ -43,6 +43,7 @@ var rootCmd = &cobra.Command{
 		// Context and errgroup used to manage routines
 		eg, ctx := errgroup.WithContext(context.Background())
 		dataChannel := make(chan api.AssetData)
+		searchChannel := make(chan []api.CoinSearchDetails)
 
 		// Flag to determine if data must be sent when viewing per coin prices
 		sendData := true
@@ -59,7 +60,7 @@ var rootCmd = &cobra.Command{
 
 		// Display UI for overall coins
 		eg.Go(func() error {
-			return allcoin.DisplayAllCoins(ctx, dataChannel, &sendData)
+			return allcoin.DisplayAllCoins(ctx, dataChannel, searchChannel, &sendData)
 		})
 
 		if err := eg.Wait(); err != nil {

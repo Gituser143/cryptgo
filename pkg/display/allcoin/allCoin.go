@@ -19,7 +19,7 @@ package allcoin
 import (
 	"context"
 	"fmt"
-	"sort"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -40,7 +40,7 @@ const (
 
 // DisplayAllCoins displays the main page with top coin prices, favourites and
 // general coin asset data
-func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendData *bool) error {
+func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, searchChannel chan []api.CoinSearchDetails, sendData *bool) error {
 
 	// Initialise UI
 	if err := ui.Init(); err != nil {
@@ -162,6 +162,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			// Handle Utility Selection, resize and Quit
 			switch e.ID {
 			case "q", "<C-c>":
+				if utilitySelected == "SEARCH" && search.Table.SelectedRow == 0 && e.ID == "q" {
+					break
+				}
 				return fmt.Errorf("UI Closed")
 
 			case "<Resize>":
@@ -462,27 +465,34 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				case "SEARCH":
 					// if currently searching
 					if search.Table.SelectedRow == 0 {
-						searchList := [][]string{}
+						searchList := []string{}
 						for symbol, coinID := range coinIDMap {
-							// check if symbol has prefix with search query,
+							// check if search query is part of the symbol,
 							//       if coinID exists for this search query
-							if strings.HasPrefix(symbol, search.SearchString) && coinID.CoinCapID != "" && coinID.CoinGeckoID != "" {
-								searchList = append(searchList, []string{symbol})
+							ok, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", search.SearchString), symbol)
+							if ok && coinID.CoinGeckoID != "" && coinID.CoinCapID != "" {
+								searchList = append(searchList, symbol)
 							}
 						}
 						if len(searchList) > 0 {
-							// sort lexicographically
-							sort.Slice(searchList[:], func(i, j int) bool {
-								return searchList[i][0] < searchList[j][0]
+							// Get Searched Prices
+							eg, coinCtx := errgroup.WithContext(ctx)
+
+							eg.Go(func() error {
+								err := api.GetSearchedPrices(
+									coinCtx,
+									searchList,
+									coinIDMap,
+									searchChannel,
+								)
+								return err
 							})
-							search.SearchList = searchList
-							search.SymbolDoesNotExist = false
 						} else {
 							search.SymbolDoesNotExist = true
-							search.SearchList = [][]string{}
+							search.SearchData = [][]string{}
 						}
 					} else {
-						// else user has chosen a sumbol
+						// else user has chosen a symbol
 						symbol := search.SelectedItem
 						m.Lock()
 						coinIDs := coinIDMap[symbol]
@@ -565,7 +575,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						// unpause data send and receive
 						pause()
 						updateUI()
-						search.Reset()
 						utilitySelected = ""
 
 					}
@@ -630,6 +639,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			case "<C-s>":
 				selectedTable.ShowCursor = false
 				selectedTable = search.Table
+				search.Reset()
 				selectedTable.ShowCursor = true
 				utilitySelected = "SEARCH"
 				updateUI()
@@ -683,18 +693,22 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			}
 
 			if utilitySelected == "SEARCH" {
-				if e.ID == "<Backspace>" {
+				if e.ID == "<Backspace>" && search.Table.SelectedRow == 0 {
 					searchStrLen := len(search.SearchString)
 					if searchStrLen > 0 {
 						search.SearchString = search.SearchString[:searchStrLen-1]
 					}
-					search.SearchList = [][]string{}
+					search.SearchData = [][]string{}
 					search.SymbolDoesNotExist = false // reset red color on change in search string
-				} else if len(e.ID) == 1 && len(search.SearchString) < 20 && search.Table.SelectedRow == 0 {
+					search.Header = []string{}
+				} else if len(e.ID) == 1 && len(search.SearchString) < 10 && search.Table.SelectedRow == 0 {
 					// check if alphabet
+					//       if length is less than max length
+					//       if on search row
 					search.SearchString += strings.ToUpper(e.ID)
 					search.SymbolDoesNotExist = false
-					search.SearchList = [][]string{}
+					search.SearchData = [][]string{}
+					search.Header = []string{}
 				}
 			}
 
@@ -704,6 +718,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			} else {
 				previousKey = e.ID
 			}
+
+		case data := <-searchChannel:
+			searchData := [][]string{}
+			for _, val := range data {
+				searchData = append(searchData, []string{val.Symbol, val.Name, fmt.Sprintf("%v", val.Price)})
+			}
+			search.SearchData = searchData
 
 		case data := <-dataChannel:
 			if data.IsTopCoinData {

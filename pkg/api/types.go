@@ -20,14 +20,16 @@ import geckoTypes "github.com/superoo7/go-gecko/v3/types"
 
 // CoinData Holds data pertaining to a single coin.
 // This is used to serve per coin details.
-// It additionally holds a map of favourite coins.
+// It additionally holds a map of favourite coins
+// and a list of details about searched coins
 type CoinData struct {
-	Type         string
-	PriceHistory []float64
-	MinPrice     float64
-	MaxPrice     float64
-	Details      CoinDetails
-	Favourites   map[string]float64
+	Type              string
+	PriceHistory      []float64
+	MinPrice          float64
+	MaxPrice          float64
+	Details           CoinDetails
+	Favourites        map[string]float64
+	CoinSearchDetails []CoinSearchDetails
 }
 
 // CoinDetails holds information about a coin
@@ -93,3 +95,10 @@ type CoinID struct {
 
 // CoinIDMap maps a symbol to it's respective ID
 type CoinIDMap map[string]CoinID
+
+// CoinSearchDetails represents some basic details about a searched coin
+type CoinSearchDetails struct {
+	Name   string
+	Price  float64
+	Symbol string
+}
