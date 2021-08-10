@@ -42,6 +42,7 @@ func DisplayCoin(
 	intervalChannel chan string,
 	dataChannel chan api.CoinData,
 	priceChannel chan string,
+	currencyIDMap *api.CurrencyIDMap,
 	uiEvents <-chan ui.Event) error {
 
 	defer ui.Clear()
@@ -50,14 +51,19 @@ func DisplayCoin(
 	myPage := NewCoinPage()
 
 	// variables for currency
-	currencyIDMap, currencyIDLock := api.NewCurencyIDMap()
-	go func() {
-		currencyIDLock.Lock()
-		currencyIDMap.Populate()
-		currencyIDLock.Unlock()
-	}()
+	currencyIDMap.Populate()
 
-	currency, currencyVal := utils.GetCurrency()
+	var currency string
+	var currencyVal float64
+	currencyID := utils.GetCurrency()
+	if val, ok := (*currencyIDMap)[currencyID]; ok {
+		currency = val.Symbol
+		currencyVal = val.RateUSD
+	} else {
+		currencyID = "united-states-dollar"
+		currency = "USD $"
+		currencyVal = 1
+	}
 	currencyWidget := uw.NewCurrencyPage()
 
 	// variables for graph interval
@@ -81,9 +87,6 @@ func DisplayCoin(
 	favourites := utils.GetFavourites()
 	portfolioMap := utils.GetPortfolio()
 	defer func() {
-		currencyIDLock.Lock()
-		currencyID := currencyIDMap[currency]
-		currencyIDLock.Unlock()
 		utils.SaveMetadata(favourites, currencyID, portfolioMap)
 	}()
 
@@ -167,7 +170,7 @@ func DisplayCoin(
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
-					currencyWidget.UpdateRows()
+					currencyWidget.UpdateRows(false)
 					utilitySelected = "CURRENCY"
 				}
 
@@ -176,7 +179,7 @@ func DisplayCoin(
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
-					currencyWidget.UpdateAll()
+					currencyWidget.UpdateRows(true)
 					utilitySelected = "CURRENCY"
 				}
 
@@ -254,18 +257,20 @@ func DisplayCoin(
 					utilitySelected = ""
 
 				case "CURRENCY":
-					var err error
 
 					// Update Currency
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
 						row := currencyWidget.Rows[currencyWidget.SelectedRow]
 
 						// Get currency and rate
-						currency = fmt.Sprintf("%s %s", row[0], row[1])
-						currencyVal, err = strconv.ParseFloat(row[3], 64)
-						if err != nil {
-							currencyVal = 0
+						currencyID = row[0]
+						if val, ok := (*currencyIDMap)[currencyID]; ok {
+							currency = val.Symbol
+							currencyVal = val.RateUSD
+						} else {
+							currencyID = "united-states-dollar"
 							currency = "USD $"
+							currencyVal = 1
 						}
 
 						// Update currency fields

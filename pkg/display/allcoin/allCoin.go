@@ -48,22 +48,25 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	defer ui.Close()
 
 	// Variables for CoinIDs
-	coinIDMap, m := api.NewCoinIDMap()
-	go func() {
-		m.Lock()
-		coinIDMap.Populate()
-		m.Unlock()
-	}()
+	coinIDMap := api.NewCoinIDMap()
+	coinIDMap.Populate()
 
 	// Variables for currency
-	currencyIDMap, currencyIDLock := api.NewCurencyIDMap()
-	go func() {
-		currencyIDLock.Lock()
-		currencyIDMap.Populate()
-		currencyIDLock.Unlock()
-	}()
+	currencyIDMap := api.NewCurencyIDMap()
+	currencyIDMap.Populate()
 
-	currency, currencyVal := utils.GetCurrency()
+	var currency string
+	var currencyVal float64
+	currencyID := utils.GetCurrency()
+	if val, ok := currencyIDMap[currencyID]; ok {
+		currency = val.Symbol
+		currencyVal = val.RateUSD
+	} else {
+		currencyID = "united-states-dollar"
+		currency = "USD $"
+		currencyVal = 1
+	}
+
 	currencyWidget := uw.NewCurrencyPage()
 
 	// Variables for percentage change
@@ -80,9 +83,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	favourites := utils.GetFavourites()
 
 	defer func() {
-		currencyIDLock.Lock()
-		currencyID := currencyIDMap[currency]
-		currencyIDLock.Unlock()
 		utils.SaveMetadata(favourites, currencyID, portfolioMap)
 	}()
 
@@ -200,7 +200,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
-					currencyWidget.UpdateRows()
+					currencyWidget.UpdateRows(false)
 					utilitySelected = "CURRENCY"
 				}
 
@@ -209,7 +209,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
-					currencyWidget.UpdateAll()
+					currencyWidget.UpdateRows(true)
 					utilitySelected = "CURRENCY"
 				}
 
@@ -270,9 +270,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						symbol = row[1]
 					}
 
-					m.Lock()
 					coinIDs := coinIDMap[symbol]
-					m.Unlock()
 
 					id = coinIDs.CoinGeckoID
 
@@ -290,6 +288,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					}
 
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
+
 				case "":
 					id := ""
 					symbol := ""
@@ -307,9 +306,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						}
 					}
 
-					m.Lock()
 					coinIDs := coinIDMap[symbol]
-					m.Unlock()
 
 					id = coinIDs.CoinGeckoID
 
@@ -331,18 +328,20 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			case "<Enter>":
 				switch utilitySelected {
 				case "CURRENCY":
-					var err error
 
 					// Update Currency
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
 						row := currencyWidget.Rows[currencyWidget.SelectedRow]
 
 						// Get currency and rate
-						currency = fmt.Sprintf("%s %s", row[0], row[1])
-						currencyVal, err = strconv.ParseFloat(row[3], 64)
-						if err != nil {
-							currencyVal = 0
+						currencyID = row[0]
+						if val, ok := currencyIDMap[currencyID]; ok {
+							currency = val.Symbol
+							currencyVal = val.RateUSD
+						} else {
+							currencyID = "united-states-dollar"
 							currency = "USD $"
+							currencyVal = 1
 						}
 
 						// Update currency fields
@@ -379,9 +378,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							symbol = row[0]
 						}
 					}
-					m.Lock()
 					coinIDs := coinIDMap[symbol]
-					m.Unlock()
 
 					coinCapId := coinIDs.CoinCapID
 					coinGeckoId := coinIDs.CoinGeckoID
@@ -434,9 +431,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							})
 						}
 
-						currencyIDLock.Lock()
-						currencyID := currencyIDMap[currency]
-						currencyIDLock.Unlock()
 						utils.SaveMetadata(favourites, currencyID, portfolioMap)
 
 						// Serve Visuals for coin
@@ -448,6 +442,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 								intervalChannel,
 								coinDataChannel,
 								coinPriceChannel,
+								&currencyIDMap,
 								uiEvents,
 							)
 							return err
@@ -461,9 +456,18 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							}
 						}
 
-						currency, currencyVal = utils.GetCurrency()
+						currencyID = utils.GetCurrency()
+						if val, ok := currencyIDMap[currencyID]; ok {
+							currency = val.Symbol
+							currencyVal = val.RateUSD
+						} else {
+							currencyID = "united-states-dollar"
+							currency = "USD $"
+							currencyVal = 1
+						}
 
 					}
+
 					// unpause data send and receive
 					pause()
 					updateUI()
@@ -516,9 +520,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						}
 					}
 
-					m.Lock()
 					coinIDs := coinIDMap[symbol]
-					m.Unlock()
 
 					id = coinIDs.CoinGeckoID
 

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
@@ -68,17 +67,17 @@ func NewCurrencyPage() *CurrencyTable {
 	c.Table.ColResizer = func() {
 		x := c.Table.Inner.Dx()
 		c.Table.ColWidths = []int{
-			x / 4,
-			x / 4,
-			x / 4,
-			x / 4,
+			4 * x / 10,
+			2 * x / 10,
+			2 * x / 10,
+			2 * x / 10,
 		}
 	}
 	return c
 }
 
 func (c *CurrencyTable) Resize(termWidth, termHeight int) {
-	textWidth := 50
+	textWidth := 80
 
 	textHeight := len(c.Table.Rows) + 3
 	x := (termWidth - textWidth) / 2
@@ -97,11 +96,27 @@ func (c *CurrencyTable) Resize(termWidth, termHeight int) {
 
 // Draw puts the required text into the widget
 func (c *CurrencyTable) Draw(buf *ui.Buffer) {
+	if len(c.Table.Rows) == 0 {
+		c.Table.Title = " Unable to fetch currencies, please close and retry "
+	} else {
+		c.Table.Title = " Select Currency "
+	}
 	c.Table.Draw(buf)
 }
 
 // UpdateAll fetches rates of all currencies and updates them as rows in the table
-func (c *CurrencyTable) UpdateAll() {
+func (c *CurrencyTable) UpdateRows(allCurrencies bool) {
+	currencies := map[string]bool{
+		"united-states-dollar":   true,
+		"euro":                   true,
+		"japanese-yen":           true,
+		"british-pound-sterling": true,
+		"indian-rupee":           true,
+		"australian-dollar":      true,
+		"canadian-dollar":        true,
+		"chinese-yuan-renminbi":  true,
+	}
+
 	url := "https://api.coincap.io/v2/rates"
 	method := "GET"
 
@@ -132,104 +147,49 @@ func (c *CurrencyTable) UpdateAll() {
 		return
 	}
 
-	// Iterate over currencies
-	for _, currency := range data.Data {
-		// Get currency rate
-		rate, err := strconv.ParseFloat(currency.RateUSD, 64)
-		if err != nil {
-			continue
-		}
-
-		// Aggregate data
-		row := []string{
-			currency.Symbol,
-			currency.CurrencySymbol,
-			currency.Type,
-			fmt.Sprintf("%.4f", rate),
-		}
-
-		rows = append(rows, row)
-	}
-
-	// Update table rows and sort alphabetically
-	c.Table.Rows = rows
-	utils.SortData(c.Table.Rows, 0, true, "CURRENCY")
-}
-
-// Update Rows fetches popular currency details and updates the table
-func (c *CurrencyTable) UpdateRows() {
-	currencies := []string{
-		"united-states-dollar",
-		"euro",
-		"japanese-yen",
-		"british-pound-sterling",
-		"indian-rupee",
-		"australian-dollar",
-		"canadian-dollar",
-		"chinese-yuan-renminbi",
-	}
-
-	var wg sync.WaitGroup
-	var m sync.Mutex
-
-	// init client
-	client := &http.Client{}
-	method := "GET"
-
-	rows := [][]string{}
-
-	// iterate over currencies
-	for _, currency := range currencies {
-		wg.Add(1)
-		// make concurrent requests
-		go func(c string, wg *sync.WaitGroup, m *sync.Mutex) {
-			defer wg.Done()
-			url := fmt.Sprintf("https://api.coincap.io/v2/rates/%s", c)
-
-			// Create request
-			req, err := http.NewRequest(method, url, nil)
+	if allCurrencies {
+		// Iterate over currencies
+		for _, currency := range data.Data {
+			// Get currency rate
+			rate, err := strconv.ParseFloat(currency.RateUSD, 64)
 			if err != nil {
-				return
-			}
-
-			// Get response
-			res, err := client.Do(req)
-			if err != nil {
-				return
-			}
-			defer res.Body.Close()
-
-			data := CurrencyData{}
-
-			// Read response
-			err = json.NewDecoder(res.Body).Decode(&data)
-			if err != nil {
-				return
-			}
-
-			// Get rate
-			rate, err := strconv.ParseFloat(data.Data.RateUSD, 64)
-			if err != nil {
-				return
+				continue
 			}
 
 			// Aggregate data
 			row := []string{
-				data.Data.Symbol,
-				data.Data.CurrencySymbol,
-				data.Data.Type,
+				currency.ID,
+				fmt.Sprintf("%s %s", currency.Symbol, currency.CurrencySymbol),
+				currency.Type,
 				fmt.Sprintf("%.4f", rate),
 			}
 
-			m.Lock()
 			rows = append(rows, row)
-			m.Unlock()
-		}(currency, &wg, &m)
+		}
+	} else {
+		for _, currency := range data.Data {
+			// Iterate over currencies
+			if ok := currencies[currency.ID]; ok {
+				// Get currency rate
+				rate, err := strconv.ParseFloat(currency.RateUSD, 64)
+				if err != nil {
+					continue
+				}
+
+				// Aggregate data
+				row := []string{
+					currency.ID,
+					fmt.Sprintf("%s %s", currency.Symbol, currency.CurrencySymbol),
+					currency.Type,
+					fmt.Sprintf("%.4f", rate),
+				}
+
+				rows = append(rows, row)
+			}
+		}
 	}
 
-	wg.Wait()
-
-	// Update table rows
+	// Update table rows and sort alphabetically
 	c.Table.Rows = rows
 	utils.SortData(c.Table.Rows, 0, true, "CURRENCY")
 }

@@ -18,10 +18,7 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"os"
-	"strconv"
 )
 
 type Metadata struct {
@@ -119,69 +116,34 @@ func GetPortfolio() map[string]float64 {
 	return map[string]float64{}
 }
 
-func GetCurrency() (string, float64) {
+func GetCurrency() string {
 	metadata := Metadata{}
 
 	// Get home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "USD $", 1.0
+		return "united-states-dollar"
 	}
 
 	// Check if metadta file exists
 	configPath := homeDir + "/.cryptgo-data.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return "USD $", 1.0
+		return "united-states-dollar"
 	}
 
 	// Open file
 	configFile, err := os.Open(configPath)
 	if err != nil {
-		return "USD $", 1.0
+		return "united-states-dollar"
 	}
 
 	// Read content
 	err = json.NewDecoder(configFile).Decode(&metadata)
 	if err != nil {
-		return "USD $", 1.0
+		return "united-states-dollar"
 	}
 
-	currencyID := metadata.Currency
-
-	url := fmt.Sprintf("https://api.coincap.io/v2/rates/%s", currencyID)
-	method := "GET"
-
-	client := &http.Client{}
-
-	// Create Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return "USD $", 1.0
-	}
-
-	// Send Request and get response
-	res, err := client.Do(req)
-	if err != nil {
-		res.Body.Close()
-		return "USD $", 1.0
-	}
-
-	data := CurrencyData{}
-
-	// Read response
-	err = json.NewDecoder(res.Body).Decode(&data)
-	res.Body.Close()
-	if err != nil {
-		return "USD $", 1.0
-	}
-
-	rate, err := strconv.ParseFloat(data.Data.RateUSD, 64)
-	if err != nil {
-		return "USD $", 1.0
-	}
-	currency := fmt.Sprintf("%s %s", data.Data.Symbol, data.Data.CurrencySymbol)
-
-	return currency, rate
+	return metadata.Currency
 }
 
 // SaveMetadata exports favourites, currency and portfolio to disk.

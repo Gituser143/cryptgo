@@ -23,11 +23,9 @@ import (
 	"sync"
 )
 
-var CoinIDMutex sync.Mutex
-
-func NewCoinIDMap() (CoinIDMap, *sync.Mutex) {
+func NewCoinIDMap() CoinIDMap {
 	c := make(CoinIDMap)
-	return c, &CoinIDMutex
+	return c
 }
 
 func (c *CoinIDMap) Populate() {
@@ -63,8 +61,8 @@ func (c *CoinIDMap) Populate() {
 			return
 		}
 
-		m.Lock()
 		for _, val := range coinCapData.Data {
+			m.Lock()
 			if _, ok := (*IDMap)[val.Symbol]; ok {
 				(*IDMap)[val.Symbol] = CoinID{
 					CoinCapID:   val.ID,
@@ -75,8 +73,8 @@ func (c *CoinIDMap) Populate() {
 					CoinCapID: val.ID,
 				}
 			}
+			m.Unlock()
 		}
-		m.Unlock()
 	}(c, &m, &wg)
 
 	go func(IDMap *CoinIDMap, m *sync.Mutex, wg *sync.WaitGroup) {
@@ -89,6 +87,7 @@ func (c *CoinIDMap) Populate() {
 
 		for _, val := range coinPtr {
 			symbol := strings.ToUpper(val.Symbol)
+			m.Lock()
 			if _, ok := (*IDMap)[symbol]; ok {
 				(*IDMap)[symbol] = CoinID{
 					CoinGeckoID: val.ID,
@@ -99,8 +98,9 @@ func (c *CoinIDMap) Populate() {
 					CoinGeckoID: val.ID,
 				}
 			}
+			m.Unlock()
 		}
-
 	}(c, &m, &wg)
+
 	wg.Wait()
 }

@@ -20,16 +20,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
+	"strconv"
 
 	"github.com/Gituser143/cryptgo/pkg/utils"
 )
 
-var CurrencyIDMutex sync.Mutex
-
-func NewCurencyIDMap() (CurrencyIDMap, *sync.Mutex) {
+func NewCurencyIDMap() CurrencyIDMap {
 	c := make(CurrencyIDMap)
-	return c, &CurrencyIDMutex
+	return c
 }
 
 func (c *CurrencyIDMap) Populate() {
@@ -62,9 +60,14 @@ func (c *CurrencyIDMap) Populate() {
 
 	// Iterate over currencies
 	for _, curr := range data.Data {
-		// Get currency rate
-		currency := fmt.Sprintf("%s %s", curr.Symbol, curr.CurrencySymbol)
 		currencyID := curr.ID
-		(*c)[currency] = currencyID
+		rate, err := strconv.ParseFloat(curr.RateUSD, 64)
+		if err == nil {
+
+			(*c)[currencyID] = Currency{
+				Symbol:  fmt.Sprintf("%s %s", curr.Symbol, curr.CurrencySymbol),
+				RateUSD: rate,
+			}
+		}
 	}
 }
