@@ -93,11 +93,3 @@ type CoinID struct {
 
 // CoinIDMap maps a symbol to it's respective ID
 type CoinIDMap map[string]CoinID
-
-type Currency struct {
-	Symbol  string
-	RateUSD float64
-}
-
-// CurrencyIDMap maps a currency Id to it's symbol and price in USD
-type CurrencyIDMap map[string]Currency

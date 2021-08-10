@@ -27,8 +27,8 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-// Currency holds data of a currency
-type Currency struct {
+// SingleCurrency holds data of a currency. Used for API fetches
+type SingleCurrency struct {
 	ID             string `json:"id"`
 	Symbol         string `json:"symbol"`
 	CurrencySymbol string `json:"currencySymbol"`
@@ -36,27 +36,97 @@ type Currency struct {
 	RateUSD        string `json:"rateUSD"`
 }
 
-// CurrencyData is used to hold data of a currency when fetched from the API
-type CurrencyData struct {
-	Data      Currency `json:"data"`
-	Timestamp uint     `json:"timestamp"`
-}
-
 // AllCurrencyData holds details of currencies when all are fetched from the API
 type AllCurrencyData struct {
-	Data      []Currency `json:"data"`
-	Timestamp uint       `json:"timestamp"`
+	Data      []SingleCurrency `json:"data"`
+	Timestamp uint             `json:"timestamp"`
 }
 
 // CurrencyTable is a widget used to display currencyies, symbols and rates
 type CurrencyTable struct {
 	*widgets.Table
+	IDMap *CurrencyIDMap
+}
+
+// Currency holds information of a single currency, it used to populate currencyIDMaps
+type Currency struct {
+	Symbol  string
+	RateUSD float64
+	Type    string
+}
+
+// CurrencyIDMap maps a currency Id to it's symbol and price in USD
+type CurrencyIDMap map[string]Currency
+
+// NewCurrencyIDMap creates and returns an instance of CurrencyIDMap
+func NewCurencyIDMap() CurrencyIDMap {
+	c := make(CurrencyIDMap)
+	return c
+}
+
+// Populate fetches currency rates and populates the map
+func (c *CurrencyIDMap) Populate() {
+	url := "https://api.coincap.io/v2/rates"
+	method := "GET"
+
+	client := &http.Client{}
+
+	// Create Request
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return
+	}
+
+	// Send Request and get response
+	res, err := client.Do(req)
+	if err != nil {
+		res.Body.Close()
+		return
+	}
+
+	data := utils.AllCurrencyData{}
+
+	// Read response
+	err = json.NewDecoder(res.Body).Decode(&data)
+	res.Body.Close()
+	if err != nil {
+		return
+	}
+
+	// Iterate over currencies
+	for _, curr := range data.Data {
+		currencyID := curr.ID
+		rate, err := strconv.ParseFloat(curr.RateUSD, 64)
+		if err == nil {
+
+			(*c)[currencyID] = Currency{
+				Symbol:  fmt.Sprintf("%s %s", curr.Symbol, curr.CurrencySymbol),
+				RateUSD: rate,
+				Type:    curr.Type,
+			}
+		}
+	}
+}
+
+// Get returns the symbol and USD rate for a given currency ID
+// If the given currency ID does not exist in the Map, values
+// for US Dollar are returned
+func (c *CurrencyTable) Get(currencyID string) (string, string, float64) {
+	if val, ok := (*c.IDMap)[currencyID]; ok {
+		return currencyID, val.Symbol, val.RateUSD
+	} else {
+		return "united-states-dollar", "USD $", 1
+	}
 }
 
 // NewCurrencyPage creates, initialises and returns a pointer to an instance of CurrencyTable
 func NewCurrencyPage() *CurrencyTable {
+	idMap := NewCurencyIDMap()
+	idMap.Populate()
+
 	c := &CurrencyTable{
 		Table: widgets.NewTable(),
+		IDMap: &idMap,
 	}
 
 	c.Table.Title = " Select Currency "
@@ -73,6 +143,7 @@ func NewCurrencyPage() *CurrencyTable {
 			2 * x / 10,
 		}
 	}
+
 	return c
 }
 
@@ -117,75 +188,36 @@ func (c *CurrencyTable) UpdateRows(allCurrencies bool) {
 		"chinese-yuan-renminbi":  true,
 	}
 
-	url := "https://api.coincap.io/v2/rates"
-	method := "GET"
+	c.IDMap.Populate()
 
-	rows := [][]string{}
-
-	// init client
-	client := &http.Client{}
-
-	// Create Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return
-	}
-
-	// Send Request and get response
-	res, err := client.Do(req)
-	if err != nil {
-		res.Body.Close()
-		return
-	}
-
-	data := AllCurrencyData{}
-
-	// Read response
-	err = json.NewDecoder(res.Body).Decode(&data)
-	res.Body.Close()
-	if err != nil {
-		return
-	}
+	rows := make([][]string, 0)
 
 	if allCurrencies {
-		// Iterate over currencies
-		for _, currency := range data.Data {
-			// Get currency rate
-			rate, err := strconv.ParseFloat(currency.RateUSD, 64)
-			if err != nil {
-				continue
-			}
-
+		// Iterate over all currencies
+		for currencyID, currency := range *c.IDMap {
 			// Aggregate data
 			row := []string{
-				currency.ID,
-				fmt.Sprintf("%s %s", currency.Symbol, currency.CurrencySymbol),
+				currencyID,
+				currency.Symbol,
 				currency.Type,
-				fmt.Sprintf("%.4f", rate),
+				fmt.Sprintf("%.4f", currency.RateUSD),
 			}
 
 			rows = append(rows, row)
 		}
 	} else {
-		for _, currency := range data.Data {
-			// Iterate over currencies
-			if ok := currencies[currency.ID]; ok {
-				// Get currency rate
-				rate, err := strconv.ParseFloat(currency.RateUSD, 64)
-				if err != nil {
-					continue
-				}
-
-				// Aggregate data
-				row := []string{
-					currency.ID,
-					fmt.Sprintf("%s %s", currency.Symbol, currency.CurrencySymbol),
-					currency.Type,
-					fmt.Sprintf("%.4f", rate),
-				}
-
-				rows = append(rows, row)
+		// Iterate over selected currencies
+		for currencyID := range currencies {
+			currency := (*c.IDMap)[currencyID]
+			// Aggregate data
+			row := []string{
+				currencyID,
+				currency.Symbol,
+				currency.Type,
+				fmt.Sprintf("%.4f", currency.RateUSD),
 			}
+
+			rows = append(rows, row)
 		}
 	}
 

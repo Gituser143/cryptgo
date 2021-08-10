@@ -42,7 +42,6 @@ func DisplayCoin(
 	intervalChannel chan string,
 	dataChannel chan api.CoinData,
 	priceChannel chan string,
-	currencyIDMap *api.CurrencyIDMap,
 	uiEvents <-chan ui.Event) error {
 
 	defer ui.Clear()
@@ -50,21 +49,11 @@ func DisplayCoin(
 	// Init Coin page
 	myPage := NewCoinPage()
 
-	// variables for currency
-	currencyIDMap.Populate()
-
-	var currency string
-	var currencyVal float64
-	currencyID := utils.GetCurrency()
-	if val, ok := (*currencyIDMap)[currencyID]; ok {
-		currency = val.Symbol
-		currencyVal = val.RateUSD
-	} else {
-		currencyID = "united-states-dollar"
-		currency = "USD $"
-		currencyVal = 1
-	}
+	// Currency table
 	currencyWidget := uw.NewCurrencyPage()
+
+	currencyID := utils.GetCurrency()
+	currencyID, currency, currencyVal := currencyWidget.Get(currencyID)
 
 	// variables for graph interval
 	changeInterval := "24 Hours"
@@ -264,14 +253,7 @@ func DisplayCoin(
 
 						// Get currency and rate
 						currencyID = row[0]
-						if val, ok := (*currencyIDMap)[currencyID]; ok {
-							currency = val.Symbol
-							currencyVal = val.RateUSD
-						} else {
-							currencyID = "united-states-dollar"
-							currency = "USD $"
-							currencyVal = 1
-						}
+						currencyID, currency, currencyVal = currencyWidget.Get(currencyID)
 
 						// Update currency fields
 						favHeader[1] = fmt.Sprintf("Price (%s)", currency)

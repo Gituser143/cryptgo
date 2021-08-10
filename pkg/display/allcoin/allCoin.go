@@ -51,23 +51,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	coinIDMap := api.NewCoinIDMap()
 	coinIDMap.Populate()
 
-	// Variables for currency
-	currencyIDMap := api.NewCurencyIDMap()
-	currencyIDMap.Populate()
-
-	var currency string
-	var currencyVal float64
-	currencyID := utils.GetCurrency()
-	if val, ok := currencyIDMap[currencyID]; ok {
-		currency = val.Symbol
-		currencyVal = val.RateUSD
-	} else {
-		currencyID = "united-states-dollar"
-		currency = "USD $"
-		currencyVal = 1
-	}
-
 	currencyWidget := uw.NewCurrencyPage()
+	currencyID := utils.GetCurrency()
+	currencyID, currency, currencyVal := currencyWidget.Get(currencyID)
 
 	// Variables for percentage change
 	changePercent := "24h"
@@ -335,14 +321,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						// Get currency and rate
 						currencyID = row[0]
-						if val, ok := currencyIDMap[currencyID]; ok {
-							currency = val.Symbol
-							currencyVal = val.RateUSD
-						} else {
-							currencyID = "united-states-dollar"
-							currency = "USD $"
-							currencyVal = 1
-						}
+						currencyID, currency, currencyVal = currencyWidget.Get(currencyID)
 
 						// Update currency fields
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
@@ -442,7 +421,6 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 								intervalChannel,
 								coinDataChannel,
 								coinPriceChannel,
-								&currencyIDMap,
 								uiEvents,
 							)
 							return err
@@ -457,14 +435,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						}
 
 						currencyID = utils.GetCurrency()
-						if val, ok := currencyIDMap[currencyID]; ok {
-							currency = val.Symbol
-							currencyVal = val.RateUSD
-						} else {
-							currencyID = "united-states-dollar"
-							currency = "USD $"
-							currencyVal = 1
-						}
+						currencyID, currency, currencyVal = currencyWidget.Get(currencyID)
 
 					}
 
