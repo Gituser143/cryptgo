@@ -95,4 +95,7 @@ type CoinID struct {
 type CoinIDMap map[string]CoinID
 
 type PortfolioData struct {
+	DataType         string
+	AllCoinData      geckoTypes.CoinsMarket
+	PortfolioHistory []float64
 }

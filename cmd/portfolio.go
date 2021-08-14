@@ -32,16 +32,19 @@ var portfolioCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Context and errgroup used to manage routines
 		eg, ctx := errgroup.WithContext(context.Background())
-		dataChannel := make(chan api.PortfolioData)
+		dataChannel := make(chan api.AssetData)
 
-		// Fetch coin data
+		// Flag to determine if data must be sent when viewing per coin prices
+		sendData := true
+
+		// Fetch Coin Assets
 		eg.Go(func() error {
-			return nil
+			return api.GetAssets(ctx, dataChannel, &sendData)
 		})
 
 		// Display UI for coins
 		eg.Go(func() error {
-			return portfolio.DisplayPortfolio(ctx, dataChannel)
+			return portfolio.DisplayPortfolio(ctx, dataChannel, &sendData)
 		})
 
 		if err := eg.Wait(); err != nil {

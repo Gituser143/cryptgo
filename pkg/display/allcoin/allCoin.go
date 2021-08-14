@@ -591,7 +591,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					change := "NA"
 					percentageChange := api.GetPercentageChangeForDuration(val, changePercent)
 					if percentageChange < 0 {
-						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -1*percentageChange)
+						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -percentageChange)
 					} else {
 						change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
 					}

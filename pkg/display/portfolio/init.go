@@ -17,6 +17,8 @@ limitations under the License.
 package portfolio
 
 import (
+	"math"
+
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
 )
@@ -29,6 +31,25 @@ type PortfolioPage struct {
 	PortfolioGraph      *widgets.LineGraph
 	BestPerformerTable  *widgets.Table
 	WorstPerformerTable *widgets.Table
+}
+
+type Performer struct {
+	BestVal   float64
+	BestCoin  string
+	WorstVal  float64
+	WorstCoin string
+}
+
+func GetEmptyPerformers() map[string]Performer {
+	m := map[string]Performer{
+		"1h":  {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
+		"24h": {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
+		"7d":  {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
+		"30d": {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
+		"1y":  {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
+	}
+
+	return m
 }
 
 func NewPortfolioPage() *PortfolioPage {
@@ -59,14 +80,14 @@ func (page *PortfolioPage) InitPortfolioPage() {
 			x / 2,
 		}
 	}
-	page.DetailsTable.ShowCursor = true
+	page.DetailsTable.ShowCursor = false
 	page.DetailsTable.CursorColor = ui.ColorCyan
 
 	// Initialise CoinTable
 	page.CoinTable.Title = " Coins "
 	page.CoinTable.BorderStyle.Fg = ui.ColorCyan
 	page.CoinTable.TitleStyle.Fg = ui.ColorClear
-	page.CoinTable.Header = []string{"Rank", "Symbol", "Price", "Change %", "Holding", "Balance", "Holding %"}
+	page.CoinTable.Header = []string{"Rank", "Symbol", "Price", "Change % (1d)", "Holding", "Balance", "Holding %"}
 	page.CoinTable.ColResizer = func() {
 		x := page.CoinTable.Inner.Dx()
 		page.CoinTable.ColWidths = []int{
