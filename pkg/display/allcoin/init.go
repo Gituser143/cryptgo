@@ -21,35 +21,35 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-// AllCoinPage holds UI items for the home page
-type AllCoinPage struct {
+// allCoinPage holds UI items for the home page
+type allCoinPage struct {
 	Grid            *ui.Grid
 	CoinTable       *widgets.Table
 	TopCoinGraphs   []*widgets.LineGraph
 	FavouritesTable *widgets.Table
 }
 
-// NewAllCoinPage creates, initialises and returns a pointer to an instance of AllCoinPage
-func NewAllCoinPage() *AllCoinPage {
+// newallCoinPage creates, initialises and returns a pointer to an instance of allCoinPage
+func newAllCoinPage() *allCoinPage {
 	coinGraphs := []*widgets.LineGraph{}
 	for i := 0; i < 3; i++ {
 		coinGraphs = append(coinGraphs, widgets.NewLineGraph())
 	}
 
-	page := &AllCoinPage{
+	page := &allCoinPage{
 		Grid:            ui.NewGrid(),
 		CoinTable:       widgets.NewTable(),
 		TopCoinGraphs:   coinGraphs,
 		FavouritesTable: widgets.NewTable(),
 	}
 
-	page.InitAllCoin()
+	page.init()
 
 	return page
 }
 
-// InitAllCoin initialises the widgets of an AllCoinPage
-func (page *AllCoinPage) InitAllCoin() {
+// init initialises the widgets of an allCoinPage
+func (page *allCoinPage) init() {
 	// Initialise CoinTable
 	page.CoinTable.Title = " Coins "
 	page.CoinTable.BorderStyle.Fg = ui.ColorCyan

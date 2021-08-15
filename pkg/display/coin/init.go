@@ -21,8 +21,8 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-// CoinPage holds UI items for a coin page
-type CoinPage struct {
+// coinPage holds UI items for a coin page
+type coinPage struct {
 	Grid            *ui.Grid
 	FavouritesTable *widgets.Table
 	ValueGraph      *widgets.LineGraph
@@ -33,9 +33,9 @@ type CoinPage struct {
 	SupplyChart     *widgets.BarChart
 }
 
-// NewCoinPage creates, initialises and returns a pointer to an instance of CoinPage
-func NewCoinPage() *CoinPage {
-	page := &CoinPage{
+// newcoinPage creates, initialises and returns a pointer to an instance of coinPage
+func newCoinPage() *coinPage {
+	page := &coinPage{
 		Grid:            ui.NewGrid(),
 		FavouritesTable: widgets.NewTable(),
 		ValueGraph:      widgets.NewLineGraph(),
@@ -45,13 +45,13 @@ func NewCoinPage() *CoinPage {
 		ExplorerTable:   widgets.NewTable(),
 		SupplyChart:     widgets.NewBarChart(),
 	}
-	page.InitCoin()
+	page.init()
 
 	return page
 }
 
-// InitCoin initialises the widgets of an CoinPage
-func (page *CoinPage) InitCoin() {
+// init initialises the widgets of an coinPage
+func (page *coinPage) init() {
 	// Initialise Favourites table
 	page.FavouritesTable.Title = " Favourites "
 	page.FavouritesTable.BorderStyle.Fg = ui.ColorCyan

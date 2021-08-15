@@ -23,8 +23,8 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-// PortfolioPage holds UI items for the portfolio page
-type PortfolioPage struct {
+// portfolioPage holds UI items for the portfolio page
+type portfolioPage struct {
 	Grid                *ui.Grid
 	DetailsTable        *widgets.Table
 	CoinTable           *widgets.Table
@@ -32,15 +32,17 @@ type PortfolioPage struct {
 	WorstPerformerTable *widgets.Table
 }
 
-type Performer struct {
+// performer holds best and worst perfomer details
+type performer struct {
 	BestVal   float64
 	BestCoin  string
 	WorstVal  float64
 	WorstCoin string
 }
 
-func GetEmptyPerformers() map[string]Performer {
-	m := map[string]Performer{
+// getEmptyPerformers returns a map with required durations as keys and empty performers
+func getEmptyPerformers() map[string]performer {
+	m := map[string]performer{
 		"1h":  {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
 		"24h": {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
 		"7d":  {BestVal: math.Inf(-1), WorstVal: math.Inf(1)},
@@ -51,8 +53,8 @@ func GetEmptyPerformers() map[string]Performer {
 	return m
 }
 
-func NewPortfolioPage() *PortfolioPage {
-	page := &PortfolioPage{
+func newPortfolioPage() *portfolioPage {
+	page := &portfolioPage{
 		Grid:                ui.NewGrid(),
 		DetailsTable:        widgets.NewTable(),
 		CoinTable:           widgets.NewTable(),
@@ -60,12 +62,12 @@ func NewPortfolioPage() *PortfolioPage {
 		WorstPerformerTable: widgets.NewTable(),
 	}
 
-	page.InitPortfolioPage()
+	page.init()
 
 	return page
 }
 
-func (page *PortfolioPage) InitPortfolioPage() {
+func (page *portfolioPage) init() {
 	// Initialise Details table
 	page.DetailsTable.Title = " Details "
 	page.DetailsTable.BorderStyle.Fg = ui.ColorCyan

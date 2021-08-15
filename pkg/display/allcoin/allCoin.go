@@ -60,7 +60,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	changePercentWidget := uw.NewChangePercentPage()
 
 	// Initalise page and set selected table
-	page := NewAllCoinPage()
+	page := newAllCoinPage()
 	selectedTable := page.CoinTable
 	utilitySelected := ""
 
@@ -664,7 +664,5 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				updateUI()
 			}
 		}
-
 	}
-
 }

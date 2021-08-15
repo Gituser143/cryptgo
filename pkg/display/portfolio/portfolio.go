@@ -30,7 +30,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	defer ui.Close()
 
 	// Initialise page
-	page := NewPortfolioPage()
+	page := newPortfolioPage()
 	selectedTable := page.CoinTable
 	utilitySelected := ""
 
@@ -47,7 +47,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	portfolioMap := utils.GetPortfolio()
 
 	// get performers map
-	performersMap := GetEmptyPerformers()
+	performersMap := getEmptyPerformers()
 
 	// get favourites
 	favourites := utils.GetFavourites()
@@ -437,7 +437,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						val := api.GetPercentageChangeForDuration(val, duration)
 
 						if val > performersMap[duration].BestVal {
-							performersMap[duration] = Performer{
+							performersMap[duration] = performer{
 								BestVal:   val,
 								BestCoin:  symbol,
 								WorstVal:  performersMap[duration].WorstVal,
@@ -446,7 +446,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						}
 
 						if val < performersMap[duration].WorstVal {
-							performersMap[duration] = Performer{
+							performersMap[duration] = performer{
 								BestVal:   performersMap[duration].BestVal,
 								BestCoin:  performersMap[duration].BestCoin,
 								WorstVal:  val,

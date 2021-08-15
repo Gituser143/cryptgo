@@ -47,7 +47,7 @@ func DisplayCoin(
 	defer ui.Clear()
 
 	// Init Coin page
-	page := NewCoinPage()
+	page := newCoinPage()
 
 	// Currency table
 	currencyWidget := uw.NewCurrencyPage()
