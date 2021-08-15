@@ -29,8 +29,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	}
 	defer ui.Close()
 
-	myPage := NewPortfolioPage()
-	selectedTable := myPage.CoinTable
+	// Initialise page
+	page := NewPortfolioPage()
+	selectedTable := page.CoinTable
 	utilitySelected := ""
 
 	// Variables for CoinIDs
@@ -51,6 +52,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	// get favourites
 	favourites := utils.GetFavourites()
 
+	// Save metadata back to disk
 	defer func() {
 		utils.SaveMetadata(favourites, currencyID, portfolioMap)
 	}()
@@ -62,7 +64,6 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	// Variables for sorting CoinTable
 	coinSortIdx := -1
 	coinSortAsc := false
-
 	coinHeader := []string{
 		"Rank",
 		"Symbol",
@@ -84,7 +85,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	updateUI := func() {
 		// Get Terminal Dimensions
 		w, h := ui.TerminalDimensions()
-		myPage.Grid.SetRect(0, 0, w, h)
+		page.Grid.SetRect(0, 0, w, h)
 
 		// Clear UI
 		ui.Clear()
@@ -98,7 +99,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
 		default:
-			ui.Render(myPage.Grid)
+			ui.Render(page.Grid)
 		}
 	}
 
@@ -119,6 +120,8 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 		case e := <-uiEvents:
 			switch e.ID {
+
+			// handle button events
 			case "q", "<C-c>":
 				return fmt.Errorf("UI Closed")
 
@@ -160,9 +163,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					symbol := ""
 
 					// Get ID and symbol
-					if selectedTable == myPage.CoinTable {
-						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
-							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+					if selectedTable == page.CoinTable {
+						if page.CoinTable.SelectedRow < len(page.CoinTable.Rows) {
+							row := page.CoinTable.Rows[page.CoinTable.SelectedRow]
 							symbol = row[1]
 						}
 					}
@@ -211,9 +214,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					symbol := ""
 
 					// Get ID and symbol
-					if selectedTable == myPage.CoinTable {
-						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
-							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+					if selectedTable == page.CoinTable {
+						if page.CoinTable.SelectedRow < len(page.CoinTable.Rows) {
+							row := page.CoinTable.Rows[page.CoinTable.SelectedRow]
 							symbol = row[1]
 						}
 					}
@@ -308,57 +311,67 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
-					selectedTable = myPage.CoinTable
+					selectedTable = page.CoinTable
 					selectedTable.ShowCursor = true
 				}
 
 			// Handle Navigations
 			case "<Escape>":
 				utilitySelected = ""
-				selectedTable = myPage.CoinTable
+				selectedTable = page.CoinTable
 				selectedTable.ShowCursor = true
 				updateUI()
+
 			case "j", "<Down>":
 				selectedTable.ScrollDown()
+
 			case "k", "<Up>":
 				selectedTable.ScrollUp()
+
 			case "<C-d>":
 				selectedTable.ScrollHalfPageDown()
+
 			case "<C-u>":
 				selectedTable.ScrollHalfPageUp()
+
 			case "<C-f>":
 				selectedTable.ScrollPageDown()
+
 			case "<C-b>":
 				selectedTable.ScrollPageUp()
+
 			case "g":
 				if previousKey == "g" {
 					selectedTable.ScrollTop()
 				}
+
 			case "<Home>":
 				selectedTable.ScrollTop()
+
 			case "G", "<End>":
 				selectedTable.ScrollBottom()
-			}
 
-			if utilitySelected == "" {
-				switch e.ID {
+			// handle sorting
+			case "1", "2", "3", "4", "5", "6", "7":
 				// Sort Ascending
-				case "1", "2", "3", "4", "5", "6", "7":
+				if utilitySelected == "" {
 					idx, _ := strconv.Atoi(e.ID)
 					coinSortIdx = idx - 1
-					myPage.CoinTable.Header = append([]string{}, coinHeader...)
-					myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+					page.CoinTable.Header = append([]string{}, coinHeader...)
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
 					coinSortAsc = true
-					utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
+					utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
+				}
 
+			case "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>":
 				// Sort Descending
-				case "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>":
-					myPage.CoinTable.Header = append([]string{}, coinHeader...)
+				if utilitySelected == "" {
+					page.CoinTable.Header = append([]string{}, coinHeader...)
 					idx, _ := strconv.Atoi(e.ID[2:3])
 					coinSortIdx = idx - 1
-					myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
 					coinSortAsc = false
-					utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
+					utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
 				}
 			}
 
@@ -373,20 +386,21 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 			rows := [][]string{}
 
 			// Update currency headers
-			myPage.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
-			myPage.CoinTable.Header[5] = fmt.Sprintf("Balance (%s)", currency)
+			page.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
+			page.CoinTable.Header[5] = fmt.Sprintf("Balance (%s)", currency)
 
+			// variables to calculate holding %
+			balanceMap := map[string]float64{}
 			portfolioTotal := 0.0
 			durations := []string{"1h", "24h", "7d", "30d", "1y"}
-			balanceMap := map[string]float64{}
 
 			// Iterate over coin assets
 			for _, val := range data.AllCoinData {
+				// Get coins in portfolio
 				if portfolioHolding, ok := portfolioMap[val.ID]; ok {
-					// Get coin price
+					// Get coin details
 					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
-					// Get change %
 					change := "NA"
 					percentageChange := api.GetPercentageChangeForDuration(val, "24h")
 					if percentageChange < 0 {
@@ -409,12 +423,16 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						change,
 						holding,
 						balance,
-						"holdingPercent",
+						"holdingPercent", // calculated after total balance is calculated
 					})
 
+					// Calculate portfolio total
 					portfolioTotal += balanceFloat
+
+					// Keep track of a coin's balance
 					balanceMap[symbol] = balanceFloat
 
+					// Calculate best and worst performers
 					for _, duration := range durations {
 						val := api.GetPercentageChangeForDuration(val, duration)
 
@@ -439,20 +457,21 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 				}
 			}
 
+			// Update portfolio holding % values
 			for i, row := range rows {
 				symbol := row[1]
 				rows[i][6] = fmt.Sprintf("%.2f", (balanceMap[symbol]/portfolioTotal)*100)
 			}
 
 			// Update coin table
-			myPage.CoinTable.Rows = rows
+			page.CoinTable.Rows = rows
 
 			// Update details table
-			myPage.DetailsTable.Header = []string{
+			page.DetailsTable.Header = []string{
 				"Balance",
 				fmt.Sprintf("%.2f", portfolioTotal),
 			}
-			myPage.DetailsTable.Rows = [][]string{
+			page.DetailsTable.Rows = [][]string{
 				{"Currency", currency},
 				{"Coins", fmt.Sprintf("%d", len(portfolioMap))},
 			}
@@ -461,6 +480,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 			BestPerformerRows := [][]string{}
 			WorstPerformerRows := [][]string{}
 
+			// Format best and worst performer data
 			for _, duration := range durations {
 				change := ""
 				if performersMap[duration].BestVal < 0 {
@@ -489,17 +509,17 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 			}
 
-			myPage.BestPerformerTable.Rows = BestPerformerRows
-			myPage.WorstPerformerTable.Rows = WorstPerformerRows
+			page.BestPerformerTable.Rows = BestPerformerRows
+			page.WorstPerformerTable.Rows = WorstPerformerRows
 
 			// Sort CoinTable data
 			if coinSortIdx != -1 {
-				utils.SortData(myPage.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
+				utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
 
 				if coinSortAsc {
-					myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
 				} else {
-					myPage.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
 				}
 			}
 

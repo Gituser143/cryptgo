@@ -47,7 +47,7 @@ func DisplayCoin(
 	defer ui.Clear()
 
 	// Init Coin page
-	myPage := NewCoinPage()
+	page := NewCoinPage()
 
 	// Currency table
 	currencyWidget := uw.NewCurrencyPage()
@@ -60,7 +60,7 @@ func DisplayCoin(
 	changeIntervalWidget := uw.NewChangeIntervalPage()
 
 	// Selection of default table
-	selectedTable := myPage.ExplorerTable
+	selectedTable := page.ExplorerTable
 	selectedTable.ShowCursor = true
 	utilitySelected := ""
 
@@ -92,9 +92,9 @@ func DisplayCoin(
 		w, h := ui.TerminalDimensions()
 
 		// Adjust Suuply chart Bar graph values
-		myPage.SupplyChart.BarGap = ((w / 3) - (2 * myPage.SupplyChart.BarWidth)) / 2
+		page.SupplyChart.BarGap = ((w / 3) - (2 * page.SupplyChart.BarWidth)) / 2
 
-		myPage.Grid.SetRect(0, 0, w, h)
+		page.Grid.SetRect(0, 0, w, h)
 
 		// Clear UI
 		ui.Clear()
@@ -114,7 +114,7 @@ func DisplayCoin(
 			changeIntervalWidget.Resize(w, h)
 			ui.Render(changeIntervalWidget)
 		default:
-			ui.Render(myPage.Grid)
+			ui.Render(page.Grid)
 		}
 	}
 
@@ -137,7 +137,7 @@ func DisplayCoin(
 			case "<Escape>", "q", "<C-c>":
 				if utilitySelected != "" {
 					utilitySelected = ""
-					selectedTable = myPage.ExplorerTable
+					selectedTable = page.ExplorerTable
 					selectedTable.ShowCursor = true
 					updateUI()
 				} else {
@@ -183,14 +183,14 @@ func DisplayCoin(
 			case "f":
 				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
-					selectedTable = myPage.FavouritesTable
+					selectedTable = page.FavouritesTable
 					selectedTable.ShowCursor = true
 				}
 
 			case "F":
 				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
-					selectedTable = myPage.ExplorerTable
+					selectedTable = page.ExplorerTable
 					selectedTable.ShowCursor = true
 				}
 
@@ -206,22 +206,30 @@ func DisplayCoin(
 			// Navigations
 			case "j", "<Down>":
 				selectedTable.ScrollDown()
+
 			case "k", "<Up>":
 				selectedTable.ScrollUp()
+
 			case "<C-d>":
 				selectedTable.ScrollHalfPageDown()
+
 			case "<C-u>":
 				selectedTable.ScrollHalfPageUp()
+
 			case "<C-f>":
 				selectedTable.ScrollPageDown()
+
 			case "<C-b>":
 				selectedTable.ScrollPageUp()
+
 			case "g":
 				if previousKey == "g" {
 					selectedTable.ScrollTop()
 				}
+
 			case "<Home>":
 				selectedTable.ScrollTop()
+
 			case "G", "<End>":
 				selectedTable.ScrollBottom()
 
@@ -238,7 +246,7 @@ func DisplayCoin(
 						newChangeInterval := uw.IntervalMap[changeInterval]
 
 						// Empty current graph
-						myPage.ValueGraph.Data["Value"] = []float64{}
+						page.ValueGraph.Data["Value"] = []float64{}
 
 						// Send Updated Interval
 						intervalChannel <- newChangeInterval
@@ -263,7 +271,7 @@ func DisplayCoin(
 
 				if utilitySelected == "" {
 					selectedTable.ShowCursor = false
-					selectedTable = myPage.ExplorerTable
+					selectedTable = page.ExplorerTable
 					selectedTable.ShowCursor = true
 				}
 
@@ -303,25 +311,25 @@ func DisplayCoin(
 
 			if utilitySelected == "" {
 				switch selectedTable {
-				case myPage.FavouritesTable:
+				case page.FavouritesTable:
 					switch e.ID {
 					// Sort Ascending
 					case "1", "2":
 						idx, _ := strconv.Atoi(e.ID)
 						favSortIdx = idx - 1
-						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
-						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+						page.FavouritesTable.Header = append([]string{}, favHeader...)
+						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
 						favSortAsc = true
-						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+						utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
 					// Sort Descending
 					case "<F1>", "<F2>":
-						myPage.FavouritesTable.Header = append([]string{}, favHeader...)
+						page.FavouritesTable.Header = append([]string{}, favHeader...)
 						idx, _ := strconv.Atoi(e.ID[2:3])
 						favSortIdx = idx - 1
-						myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
 						favSortAsc = false
-						utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+						utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 					}
 				}
 			}
@@ -337,13 +345,13 @@ func DisplayCoin(
 			// Update live price
 			if data == "NA" {
 				if utilitySelected == "" {
-					myPage.PriceBox.Rows[0][0] = data
+					page.PriceBox.Rows[0][0] = data
 				}
 			} else {
 				p, _ := strconv.ParseFloat(data, 64)
 				if utilitySelected == "" {
-					myPage.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f", p/currencyVal)
-					ui.Render(myPage.PriceBox)
+					page.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f", p/currencyVal)
+					ui.Render(page.PriceBox)
 				}
 			}
 
@@ -357,27 +365,27 @@ func DisplayCoin(
 					p := fmt.Sprintf("%.2f", price/currencyVal)
 					rows = append(rows, []string{symbol, p})
 				}
-				myPage.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
-				myPage.FavouritesTable.Rows = rows
+				page.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
+				page.FavouritesTable.Rows = rows
 
 			case "HISTORY":
 				// Update History graph
 				price := data.PriceHistory
 
 				// Set value, min & max price
-				myPage.ValueGraph.Data["Value"] = price
+				page.ValueGraph.Data["Value"] = price
 				value := (price[len(price)-1] + data.MinPrice) / currencyVal
 
-				myPage.ValueGraph.Labels["Value"] = fmt.Sprintf("%.2f %s", value, currency)
-				myPage.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", data.MaxPrice/currencyVal, currency)
-				myPage.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", data.MinPrice/currencyVal, currency)
+				page.ValueGraph.Labels["Value"] = fmt.Sprintf("%.2f %s", value, currency)
+				page.ValueGraph.Labels["Max"] = fmt.Sprintf("%.2f %s", data.MaxPrice/currencyVal, currency)
+				page.ValueGraph.Labels["Min"] = fmt.Sprintf("%.2f %s", data.MinPrice/currencyVal, currency)
 
 				// Update Graph title
-				myPage.ValueGraph.Title = fmt.Sprintf(" Value History (%s) ", changeInterval)
+				page.ValueGraph.Title = fmt.Sprintf(" Value History (%s) ", changeInterval)
 
 			case "DETAILS":
 				// Update Details table
-				myPage.DetailsTable.Header = []string{"Name", data.Details.Name}
+				page.DetailsTable.Header = []string{"Name", data.Details.Name}
 
 				marketCapVals, units := utils.RoundValues(data.Details.MarketCap, 0)
 				marketCap := fmt.Sprintf("%.2f %s %s", marketCapVals[0]/currencyVal, units, currency)
@@ -404,40 +412,40 @@ func DisplayCoin(
 					{"LastUpdate", data.Details.LastUpdate},
 				}
 
-				myPage.DetailsTable.Rows = rows
+				page.DetailsTable.Rows = rows
 
 				// Update 24 High/Low
-				myPage.PriceBox.Rows[0][1] = fmt.Sprintf("%.2f", data.Details.High24/currencyVal)
-				myPage.PriceBox.Rows[0][2] = fmt.Sprintf("%.2f", data.Details.Low24/currencyVal)
-				myPage.PriceBox.Title = fmt.Sprintf(" Live Price (%s) ", currency)
+				page.PriceBox.Rows[0][1] = fmt.Sprintf("%.2f", data.Details.High24/currencyVal)
+				page.PriceBox.Rows[0][2] = fmt.Sprintf("%.2f", data.Details.Low24/currencyVal)
+				page.PriceBox.Title = fmt.Sprintf(" Live Price (%s) ", currency)
 
 				// Get Change Percents
-				myPage.ChangesTable.Rows = data.Details.ChangePercents
+				page.ChangesTable.Rows = data.Details.ChangePercents
 
 				// Get supply and Max supply
 				supply := data.Details.CurrentSupply
 				maxSupply := data.Details.TotalSupply
 
 				supplyVals, units := utils.RoundValues(supply, maxSupply)
-				myPage.SupplyChart.Data = supplyVals
-				myPage.SupplyChart.Title = fmt.Sprintf(" Supply (%s) ", units)
+				page.SupplyChart.Data = supplyVals
+				page.SupplyChart.Title = fmt.Sprintf(" Supply (%s) ", units)
 
 				// Get Explorers
-				myPage.ExplorerTable.Rows = data.Details.Explorers
+				page.ExplorerTable.Rows = data.Details.Explorers
 
 			}
 
 			// Sort favourites table
 			if favSortIdx != -1 {
-				utils.SortData(myPage.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+				utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
 				if favSortAsc {
-					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
 				} else {
-					myPage.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
 				}
 			} else {
-				utils.SortData(myPage.FavouritesTable.Rows, 0, true, "FAVOURITES")
+				utils.SortData(page.FavouritesTable.Rows, 0, true, "FAVOURITES")
 			}
 
 		case <-tick: // Refresh UI
