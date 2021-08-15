@@ -42,7 +42,7 @@ var portfolioCmd = &cobra.Command{
 			return api.GetAssets(ctx, dataChannel, &sendData)
 		})
 
-		// Display UI for coins
+		// Display UI for portfolio
 		eg.Go(func() error {
 			return portfolio.DisplayPortfolio(ctx, dataChannel, &sendData)
 		})
@@ -58,14 +58,4 @@ var portfolioCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(portfolioCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// portfolioCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// portfolioCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
