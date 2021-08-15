@@ -31,6 +31,10 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	selectedTable := myPage.CoinTable
 	utilitySelected := ""
 
+	// Variables for CoinIDs
+	coinIDMap := api.NewCoinIDMap()
+	coinIDMap.Populate()
+
 	// currency variables
 	currencyWidget := uw.NewCurrencyPage()
 	currencyID := utils.GetCurrency()
@@ -145,6 +149,39 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows(true)
 					utilitySelected = "CURRENCY"
+				}
+
+			case "e":
+				switch utilitySelected {
+				case "":
+					id := ""
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					}
+
+					coinIDs := coinIDMap[symbol]
+
+					id = coinIDs.CoinGeckoID
+
+					if id != "" {
+
+						inputStr := widgets.DrawEdit(uiEvents, symbol)
+
+						amt, err := strconv.ParseFloat(inputStr, 64)
+						if err == nil {
+							if amt > 0 {
+								portfolioMap[id] = amt
+							} else {
+								delete(portfolioMap, id)
+							}
+						}
+					}
 				}
 
 			case "<Enter>":
