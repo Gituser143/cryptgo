@@ -3,6 +3,8 @@ cryptgo
 
 Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!
 
+![logo](images/logo.png)
+
 Installation
 ============
 
@@ -39,9 +41,9 @@ go build cryptgo.go
 What does `cryptgo` do?
 =======================
 
-Cryptgo helps you look at cryptocurrency values and details straight from your terminal!
+Cryptgo helps you look at cryptocurrency values, details and track your crypto portfolio straight from your terminal!
 
-It makes use of the API provided by [CoinCap.io](https://coincap.io/) and [CoinGecko](https://www.coingecko.com/en) to provide required details!
+It makes use of the API provided by [CoinCap.io](https://coincap.io/) and [CoinGecko](https://www.coingecko.com/en) to provide the required details!
 
 Main Page
 ---------
@@ -124,12 +126,45 @@ Key-bindings can be found by pressing `?`. This displays the help prompt.
 	-	`<c>`: Select Currency (from popular list)
 	-	`<C>`: Select Currency (from full list)
 
-Portfolio
----------
+Portfolio Page
+--------------
+
+![portfolio-page](images/portfolio-page.png)
+
+-	Cryptgo allows you to track your crypto portfolio through a separately defined page.
+
+-	This page can be accessed with the command `cryptgo portfolio`.
+
+### Key-Bindings
+
+-	**Quit: `q` or `<C-c>`**
+-	**Table Navigation**
+	-	`k` and `<Up>`: up
+	-	`j` and `<Down>`: down
+	-	`<C-u>`: half page up
+	-	`<C-d>`: half page down
+	-	`<C-b>`: full page up
+	-	`<C-f>`: full page down
+	-	`gg` and `<Home>`: jump to top
+	-	`G` and `<End>`: jump to bottom
+-	**Sorting**
+
+	-	Use column number to sort ascending.
+	-	Use `<F-column number>` to sort descending.
+	-	Eg: `1` to sort ascending on 1st Col and `F1` for descending
+
+-	**Actions**
+
+	-	`c`: Select Currency (from popular list)
+	-	`C`: Select Currency (from full list)
+	-	`e`: Add/Edit coin to Portfolio
+	-	`<Enter>`: View Coin Information
+
+### Mini Portfolio
 
 ![portfolio](images/portfolio.png)
 
--	Cryptgo allows you to track your holdings through a portfolio
+-	Cryptgo also allows you to view your holdings through a mini portfolio from other pages.
 
 -	Coins can be added/modified/removed by pressing `e` on a coin in the main page. (Set Holding Amount as 0 to remove)
 

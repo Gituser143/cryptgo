@@ -103,12 +103,15 @@ func SortData(data [][]string, sortIdx int, sortAsc bool, sortCase string) {
 
 	case "PORTFOLIO":
 		sortFuncs = map[int]func(i, j int) bool{
-			0: strSort,   // Coin
-			1: strSort,   // Symbol
-			2: floatSort, // Price
-			3: floatSort, // Holding
-			4: floatSort, // Balance
+			0: intSort,    // Rank
+			1: strSort,    // Symbol
+			2: floatSort,  // Price
+			3: changeSort, // Change %
+			4: floatSort,  // Holding
+			5: floatSort,  // Balance
+			6: floatSort,  // Holding %
 		}
+
 	default:
 		sortFuncs[sortIdx] = strSort
 	}
