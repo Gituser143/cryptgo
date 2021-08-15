@@ -3,6 +3,8 @@ cryptgo
 
 Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!
 
+![logo](images/logo.png)
+
 Installation
 ============
 
