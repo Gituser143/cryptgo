@@ -28,7 +28,6 @@ type PortfolioPage struct {
 	Grid                *ui.Grid
 	DetailsTable        *widgets.Table
 	CoinTable           *widgets.Table
-	PortfolioGraph      *widgets.LineGraph
 	BestPerformerTable  *widgets.Table
 	WorstPerformerTable *widgets.Table
 }
@@ -57,7 +56,6 @@ func NewPortfolioPage() *PortfolioPage {
 		Grid:                ui.NewGrid(),
 		DetailsTable:        widgets.NewTable(),
 		CoinTable:           widgets.NewTable(),
-		PortfolioGraph:      widgets.NewLineGraph(),
 		BestPerformerTable:  widgets.NewTable(),
 		WorstPerformerTable: widgets.NewTable(),
 	}
@@ -104,17 +102,6 @@ func (page *PortfolioPage) InitPortfolioPage() {
 	page.CoinTable.CursorColor = ui.ColorCyan
 	page.CoinTable.ChangeCol[3] = true
 
-	// Initialise Potfolio Graph
-	page.PortfolioGraph.Title = " Portfolio Value (7D) "
-	page.PortfolioGraph.TitleStyle = ui.NewStyle(ui.ColorClear)
-	page.PortfolioGraph.HorizontalScale = 1
-	page.PortfolioGraph.LineColors["Max"] = ui.ColorGreen
-	page.PortfolioGraph.LineColors["Min"] = ui.ColorRed
-	page.PortfolioGraph.LineColors["Value"] = ui.ColorBlue
-	page.PortfolioGraph.BorderStyle.Fg = ui.ColorCyan
-	page.PortfolioGraph.Data["Max"] = []float64{}
-	page.PortfolioGraph.Data["Min"] = []float64{}
-
 	// Initialise Best Performer Table
 	page.BestPerformerTable.Title = " Best Performers "
 	page.BestPerformerTable.BorderStyle.Fg = ui.ColorCyan
@@ -155,8 +142,7 @@ func (page *PortfolioPage) InitPortfolioPage() {
 			ui.NewCol(0.4, page.BestPerformerTable),
 			ui.NewCol(0.4, page.WorstPerformerTable),
 		),
-		ui.NewRow(0.4, page.CoinTable),
-		ui.NewRow(0.3, page.PortfolioGraph),
+		ui.NewRow(0.7, page.CoinTable),
 	)
 
 	page.Grid.SetRect(0, 0, w, h)

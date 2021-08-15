@@ -78,6 +78,33 @@ var coinKeybindings = [][]string{
 	{"To close this prompt: <Esc>"},
 }
 
+var portfolioKeybindings = [][]string{
+	{"Quit: q or <C-c>"},
+	{""},
+	{"Table Navigation"},
+	{"  - k and <Up>: up"},
+	{"  - j and <Down>: down"},
+	{"  - <C-u>: half page up"},
+	{"  - <C-d>: half page down"},
+	{"  - <C-b>: full page up"},
+	{"  - <C-f>: full page down"},
+	{"  - gg and <Home>: jump to top"},
+	{"  - G and <End>: jump to bottom"},
+	{""},
+	{"Sorting"},
+	{"  - Use column number to sort ascending."},
+	{"  - Use <F-column number> to sort descending."},
+	{"  - Eg: 1 to sort ascedning on 1st Col and F1 for descending"},
+	{""},
+	{"Actions"},
+	{"  - c: Select Currency (from popular list)"},
+	{"  - C: Select Currency (from full list)"},
+	{"  - e: Add/Edit coin to Portfolio"},
+	{"  - <Enter>: View Coin Information"},
+	{""},
+	{"To close this prompt: <Esc>"},
+}
+
 // HelpMenu is a wrapper widget around a List meant
 // to display the help menu for a command
 type HelpMenu struct {
@@ -139,5 +166,7 @@ func (help *HelpMenu) SelectHelpMenu(page string) {
 		help.Keybindings = allKeybindings
 	case "COIN":
 		help.Keybindings = coinKeybindings
+	case "PORTFOLIO":
+		help.Keybindings = portfolioKeybindings
 	}
 }

@@ -93,9 +93,3 @@ type CoinID struct {
 
 // CoinIDMap maps a symbol to it's respective ID
 type CoinIDMap map[string]CoinID
-
-type PortfolioData struct {
-	DataType         string
-	AllCoinData      geckoTypes.CoinsMarket
-	PortfolioHistory []float64
-}
