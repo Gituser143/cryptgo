@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
+	"github.com/Gituser143/cryptgo/pkg/display/coin"
 	uw "github.com/Gituser143/cryptgo/pkg/display/utilitywidgets"
 	"github.com/Gituser143/cryptgo/pkg/utils"
 	"github.com/Gituser143/cryptgo/pkg/widgets"
 	ui "github.com/gizak/termui/v3"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -187,7 +189,6 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 			case "<Enter>":
 				switch utilitySelected {
 				case "CURRENCY":
-
 					// Update Currency
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
 						row := currencyWidget.Rows[currencyWidget.SelectedRow]
@@ -200,6 +201,108 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
 						coinHeader[5] = fmt.Sprintf("Balance (%s)", currency)
 					}
+					utilitySelected = ""
+
+				case "":
+
+					// pause UI and data send
+					pause()
+
+					symbol := ""
+
+					// Get ID and symbol
+					if selectedTable == myPage.CoinTable {
+						if myPage.CoinTable.SelectedRow < len(myPage.CoinTable.Rows) {
+							row := myPage.CoinTable.Rows[myPage.CoinTable.SelectedRow]
+							symbol = row[1]
+						}
+					}
+
+					coinIDs := coinIDMap[symbol]
+
+					coinCapId := coinIDs.CoinCapID
+					coinGeckoId := coinIDs.CoinGeckoID
+
+					if coinGeckoId != "" {
+						// Create new errorgroup for coin page
+						eg, coinCtx := errgroup.WithContext(ctx)
+						coinDataChannel := make(chan api.CoinData)
+						coinPriceChannel := make(chan string)
+						intervalChannel := make(chan string)
+
+						// Clear UI
+						ui.Clear()
+
+						// Serve Coin Price History
+						eg.Go(func() error {
+							err := api.GetCoinHistory(
+								coinCtx,
+								coinGeckoId,
+								intervalChannel,
+								coinDataChannel,
+							)
+							return err
+						})
+
+						// Serve Coin Asset data
+						eg.Go(func() error {
+							err := api.GetCoinDetails(coinCtx, coinGeckoId, coinDataChannel)
+							return err
+						})
+
+						// Serve favourie coin prices
+						eg.Go(func() error {
+							err := api.GetFavouritePrices(coinCtx,
+								favourites,
+								coinDataChannel,
+							)
+							return err
+						})
+
+						// Serve Live price of coin
+						if coinCapId != "" {
+							eg.Go(func() error {
+								api.GetLivePrice(coinCtx, coinCapId, coinPriceChannel)
+								// Send NA to indicate price is not being updated
+								go func() {
+									coinPriceChannel <- "NA"
+								}()
+								return nil
+							})
+						}
+
+						utils.SaveMetadata(favourites, currencyID, portfolioMap)
+
+						// Serve Visuals for coin
+						eg.Go(func() error {
+							err := coin.DisplayCoin(
+								coinCtx,
+								coinGeckoId,
+								coinIDMap,
+								intervalChannel,
+								coinDataChannel,
+								coinPriceChannel,
+								uiEvents,
+							)
+							return err
+						})
+
+						if err := eg.Wait(); err != nil {
+							if err.Error() != "UI Closed" {
+								// Unpause
+								pause()
+								return err
+							}
+						}
+
+						currencyID = utils.GetCurrency()
+						currencyID, currency, currencyVal = currencyWidget.Get(currencyID)
+
+					}
+
+					// unpause data send and receive
+					pause()
+					updateUI()
 					utilitySelected = ""
 				}
 
