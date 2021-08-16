@@ -52,11 +52,6 @@ var rootCmd = &cobra.Command{
 			return api.GetAssets(ctx, dataChannel, &sendData)
 		})
 
-		// Fetch Top 3 coin history
-		eg.Go(func() error {
-			return api.GetTopCoinData(ctx, dataChannel, &sendData)
-		})
-
 		// Display UI for overall coins
 		eg.Go(func() error {
 			return allcoin.DisplayAllCoins(ctx, dataChannel, &sendData)

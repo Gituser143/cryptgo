@@ -39,7 +39,7 @@ func getTopNCoins(n int) (geckoTypes.CoinsMarket, error) {
 	perPage := n
 	page := 1
 
-	sparkline := false
+	sparkline := true
 
 	pcp := geckoTypes.PriceChangePercentageObject
 	priceChangePercentage := []string{pcp.PCP1h, pcp.PCP24h, pcp.PCP7d, pcp.PCP14d, pcp.PCP30d, pcp.PCP200d, pcp.PCP1y}
@@ -97,59 +97,6 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 				finalErr = err
 				return
 			}
-			data.AllCoinData = coinsData
-
-			// Send Data
-			select {
-			case <-ctx.Done():
-				finalErr = ctx.Err()
-				return
-			case dataChannel <- data:
-			}
-		} else {
-			select {
-			case <-ctx.Done():
-				finalErr = ctx.Err()
-				return
-			default:
-			}
-		}
-	})
-}
-
-// GetTopCoinData serves 7 Day price history for top 3 (by market cap) coins
-func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
-
-	// Init Client
-	geckoClient := gecko.NewClient(nil)
-
-	// Set Parameters
-	vsCurrency := "usd"
-	ids := []string{}
-	order := geckoTypes.OrderTypeObject.MarketCapDesc
-	perPage := 3
-	page := 1
-	sparkline := true
-	priceChangePercentage := []string{}
-
-	return utils.LoopTick(ctx, time.Duration(1)*time.Minute, func(errChan chan error) {
-		var finalErr error = nil
-		data := AssetData{}
-
-		defer func() {
-			if finalErr != nil {
-				errChan <- finalErr
-			}
-		}()
-
-		if *sendData {
-
-			// Fetch Data
-			coinDataPointer, err := geckoClient.CoinsMarket(vsCurrency, ids, order, perPage, page, sparkline, priceChangePercentage)
-			if err != nil {
-				finalErr = err
-				return
-			}
 
 			topCoinData := make([][]float64, 3)
 			topCoins := make([]string, 3)
@@ -157,7 +104,8 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			minPrices := make([]float64, 3)
 
 			// Set Prices, Max and Min
-			for i, val := range *coinDataPointer {
+			for i := 0; i < 3; i++ {
+				val := coinsData[i]
 				topCoins[i] = val.Name
 				topCoinData[i] = val.SparklineIn7d.Price
 				maxPrices[i] = utils.MaxFloat64(topCoinData[i]...)
@@ -170,13 +118,15 @@ func GetTopCoinData(ctx context.Context, dataChannel chan AssetData, sendData *b
 			}
 
 			// Aggregate data
-			data.MaxPrices = maxPrices
-			data.MinPrices = minPrices
-			data.TopCoinData = topCoinData
-			data.TopCoins = topCoins
-			data.IsTopCoinData = true
+			data = AssetData{
+				AllCoinData: coinsData,
+				MaxPrices:   maxPrices,
+				MinPrices:   minPrices,
+				TopCoinData: topCoinData,
+				TopCoins:    topCoins,
+			}
 
-			// Send data
+			// Send Data
 			select {
 			case <-ctx.Done():
 				finalErr = ctx.Err()

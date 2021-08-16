@@ -55,12 +55,11 @@ type CoinDetails struct {
 // AssetData is used to hold details of multiple coins and the price history
 // of top ranked coins along with their names
 type AssetData struct {
-	IsTopCoinData bool
-	TopCoinData   [][]float64
-	MaxPrices     []float64
-	MinPrices     []float64
-	TopCoins      []string
-	AllCoinData   geckoTypes.CoinsMarket
+	TopCoinData [][]float64
+	MaxPrices   []float64
+	MinPrices   []float64
+	TopCoins    []string
+	AllCoinData geckoTypes.CoinsMarket
 }
 
 // CoinCapAsset is used to marshal asset data from coinCap APIs

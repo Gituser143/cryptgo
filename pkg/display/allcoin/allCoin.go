@@ -554,108 +554,107 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			}
 
 		case data := <-dataChannel:
-			if data.IsTopCoinData {
-				// Update Top Coin data
-				for i, v := range data.TopCoinData {
-					// Set title to coin name
-					page.TopCoinGraphs[i].Title = fmt.Sprintf(" %s (7D) ", data.TopCoins[i])
 
-					// Update value graphs
-					page.TopCoinGraphs[i].Data["Value"] = v
+			// Update Top Coin data
+			for i, v := range data.TopCoinData {
+				// Set title to coin name
+				page.TopCoinGraphs[i].Title = fmt.Sprintf(" %s (7D) ", data.TopCoins[i])
 
-					// Set value, max & min values
-					maxValue := data.MaxPrices[i] / currencyVal
-					minValue := data.MinPrices[i] / currencyVal
-					// Current value is last point (cleaned) in graph + minimum value
-					value := (v[len(v)-1] + data.MinPrices[i]) / currencyVal
+				// Update value graphs
+				page.TopCoinGraphs[i].Data["Value"] = v
 
-					page.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f %s", value, currency)
-					page.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", maxValue, currency)
-					page.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", minValue, currency)
+				// Set value, max & min values
+				maxValue := data.MaxPrices[i] / currencyVal
+				minValue := data.MinPrices[i] / currencyVal
+				// Current value is last point (cleaned) in graph + minimum value
+				value := (v[len(v)-1] + data.MinPrices[i]) / currencyVal
+
+				page.TopCoinGraphs[i].Labels["Value"] = fmt.Sprintf("%.2f %s", value, currency)
+				page.TopCoinGraphs[i].Labels["Max"] = fmt.Sprintf("%.2f %s", maxValue, currency)
+				page.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", minValue, currency)
+			}
+
+			rows := [][]string{}
+			favouritesData := [][]string{}
+
+			// Update currency headers
+			page.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
+			page.CoinTable.Header[3] = fmt.Sprintf("Change %%(%s)", changePercent)
+			page.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
+
+			// Iterate over coin assets
+			for _, val := range data.AllCoinData {
+				// Get coin price
+				price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
+
+				// Get change %
+				change := "NA"
+				percentageChange := api.GetPercentageChangeForDuration(val, changePercent)
+				if percentageChange < 0 {
+					change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -percentageChange)
+				} else {
+					change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
 				}
-			} else {
-				rows := [][]string{}
-				favouritesData := [][]string{}
 
-				// Update currency headers
-				page.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
-				page.CoinTable.Header[3] = fmt.Sprintf("Change %%(%s)", changePercent)
-				page.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
+				units := ""
+				var supplyVals []float64
+				supplyData := ""
 
-				// Iterate over coin assets
-				for _, val := range data.AllCoinData {
-					// Get coin price
-					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
-
-					// Get change %
-					change := "NA"
-					percentageChange := api.GetPercentageChangeForDuration(val, changePercent)
-					if percentageChange < 0 {
-						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -percentageChange)
-					} else {
-						change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
-					}
-
-					units := ""
-					var supplyVals []float64
-					supplyData := ""
-
-					if val.CirculatingSupply != 0.00 && val.TotalSupply != 0.00 {
+				if val.CirculatingSupply != 0.00 && val.TotalSupply != 0.00 {
+					supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
+					supplyData = fmt.Sprintf("%.2f%s / %.2f%s", supplyVals[0], units, supplyVals[1], units)
+				} else {
+					if val.CirculatingSupply == 0.00 {
 						supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
-						supplyData = fmt.Sprintf("%.2f%s / %.2f%s", supplyVals[0], units, supplyVals[1], units)
+						supplyData = fmt.Sprintf("NA / %.2f%s", supplyVals[1], units)
 					} else {
-						if val.CirculatingSupply == 0.00 {
-							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
-							supplyData = fmt.Sprintf("NA / %.2f%s", supplyVals[1], units)
-						} else {
-							supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
-							supplyData = fmt.Sprintf("%.2f%s / NA", supplyVals[0], units)
-						}
+						supplyVals, units = utils.RoundValues(val.CirculatingSupply, val.TotalSupply)
+						supplyData = fmt.Sprintf("%.2f%s / NA", supplyVals[0], units)
 					}
+				}
 
-					rank := fmt.Sprintf("%d", val.MarketCapRank)
+				rank := fmt.Sprintf("%d", val.MarketCapRank)
 
-					// Aggregate data
-					rows = append(rows, []string{
-						rank,
+				// Aggregate data
+				rows = append(rows, []string{
+					rank,
+					strings.ToUpper(val.Symbol),
+					price,
+					change,
+					supplyData,
+				})
+
+				// Aggregate favourite data
+				if _, ok := favourites[val.ID]; ok {
+					favouritesData = append(favouritesData, []string{
 						strings.ToUpper(val.Symbol),
 						price,
-						change,
-						supplyData,
 					})
-
-					// Aggregate favourite data
-					if _, ok := favourites[val.ID]; ok {
-						favouritesData = append(favouritesData, []string{
-							strings.ToUpper(val.Symbol),
-							price,
-						})
-					}
 				}
+			}
 
-				page.CoinTable.Rows = rows
-				page.FavouritesTable.Rows = favouritesData
+			page.CoinTable.Rows = rows
+			page.FavouritesTable.Rows = favouritesData
 
-				// Sort CoinTable data
-				if coinSortIdx != -1 {
-					utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
+			// Sort CoinTable data
+			if coinSortIdx != -1 {
+				utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
 
-					if coinSortAsc {
-						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
-					} else {
-						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
-					}
+				if coinSortAsc {
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+				} else {
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
 				}
+			}
 
-				// Sort FavouritesTable Data
-				if favSortIdx != -1 {
-					utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
+			// Sort FavouritesTable Data
+			if favSortIdx != -1 {
+				utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
-					if favSortAsc {
-						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
-					} else {
-						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
-					}
+				if favSortAsc {
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+				} else {
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
 				}
 			}
 
