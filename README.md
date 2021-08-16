@@ -1,6 +1,8 @@
 cryptgo
 =======
 
+[![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml)
+
 Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!
 
 ![logo](images/logo.png)
