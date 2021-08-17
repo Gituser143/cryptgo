@@ -1,4 +1,4 @@
-module github.com/Gituser143/cryptgo
+module github.com/icelain/cryptgo
 
 go 1.16
 
