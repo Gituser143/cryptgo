@@ -88,7 +88,7 @@ func (c CoinIDMap) Populate() {
 		for _, val := range coinPtr {
 			symbol := strings.ToUpper(val.Symbol)
 			m.Lock()
-			if _, ok := (*IDMap)[symbol]; ok {
+			if _, ok := IDMap[symbol]; ok {
 				IDMap[symbol] = CoinID{
 					CoinGeckoID: val.ID,
 					CoinCapID:   IDMap[symbol].CoinCapID,
