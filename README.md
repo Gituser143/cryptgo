@@ -24,7 +24,7 @@ Using Docker
 git clone https://github.com/Gituser143/cryptgo
 cd cryptgo
 docker build -t cryptgo .
-docker run -it -v "$HOME:/root" cryptgo
+docker run --rm -it -v "$HOME:/home/appuser" cryptgo
 ```
 
 From source:
