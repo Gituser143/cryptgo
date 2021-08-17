@@ -28,7 +28,7 @@ func NewCoinIDMap() CoinIDMap {
 	return c
 }
 
-func (c *CoinIDMap) Populate() {
+func (c CoinIDMap) Populate() {
 
 	var m sync.Mutex
 	var wg sync.WaitGroup
@@ -36,7 +36,7 @@ func (c *CoinIDMap) Populate() {
 	wg.Add(2)
 
 	// Get CoinCapIDs
-	go func(IDMap *CoinIDMap, m *sync.Mutex, wg *sync.WaitGroup) {
+	go func(IDMap CoinIDMap, m *sync.Mutex, wg *sync.WaitGroup) {
 		defer wg.Done()
 		url := "https://api.coincap.io/v2/assets?limit=2000"
 		method := "GET"
@@ -63,13 +63,13 @@ func (c *CoinIDMap) Populate() {
 
 		for _, val := range coinCapData.Data {
 			m.Lock()
-			if _, ok := (*IDMap)[val.Symbol]; ok {
-				(*IDMap)[val.Symbol] = CoinID{
+			if _, ok := IDMap[val.Symbol]; ok {
+				IDMap[val.Symbol] = CoinID{
 					CoinCapID:   val.ID,
 					CoinGeckoID: (*IDMap)[val.Symbol].CoinGeckoID,
 				}
 			} else {
-				(*IDMap)[val.Symbol] = CoinID{
+				IDMap[val.Symbol] = CoinID{
 					CoinCapID: val.ID,
 				}
 			}
@@ -77,7 +77,7 @@ func (c *CoinIDMap) Populate() {
 		}
 	}(c, &m, &wg)
 
-	go func(IDMap *CoinIDMap, m *sync.Mutex, wg *sync.WaitGroup) {
+	go func(IDMap CoinIDMap, m *sync.Mutex, wg *sync.WaitGroup) {
 		defer wg.Done()
 
 		coinPtr, err := getTopNCoins(200)
@@ -89,12 +89,12 @@ func (c *CoinIDMap) Populate() {
 			symbol := strings.ToUpper(val.Symbol)
 			m.Lock()
 			if _, ok := (*IDMap)[symbol]; ok {
-				(*IDMap)[symbol] = CoinID{
+				IDMap[symbol] = CoinID{
 					CoinGeckoID: val.ID,
-					CoinCapID:   (*IDMap)[symbol].CoinCapID,
+					CoinCapID:   IDMap[symbol].CoinCapID,
 				}
 			} else {
-				(*IDMap)[symbol] = CoinID{
+				IDMap[symbol] = CoinID{
 					CoinGeckoID: val.ID,
 				}
 			}
