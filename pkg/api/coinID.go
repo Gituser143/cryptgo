@@ -66,7 +66,7 @@ func (c CoinIDMap) Populate() {
 			if _, ok := IDMap[val.Symbol]; ok {
 				IDMap[val.Symbol] = CoinID{
 					CoinCapID:   val.ID,
-					CoinGeckoID: (*IDMap)[val.Symbol].CoinGeckoID,
+					CoinGeckoID: IDMap[val.Symbol].CoinGeckoID,
 				}
 			} else {
 				IDMap[val.Symbol] = CoinID{
