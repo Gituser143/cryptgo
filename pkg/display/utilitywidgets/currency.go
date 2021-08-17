@@ -65,7 +65,7 @@ func NewCurencyIDMap() CurrencyIDMap {
 }
 
 // Populate fetches currency rates and populates the map
-func (c *CurrencyIDMap) Populate() {
+func (c CurrencyIDMap) Populate() {
 	url := "https://api.coincap.io/v2/rates"
 	method := "GET"
 
@@ -99,7 +99,7 @@ func (c *CurrencyIDMap) Populate() {
 		rate, err := strconv.ParseFloat(curr.RateUSD, 64)
 		if err == nil {
 
-			(*c)[currencyID] = Currency{
+			c[currencyID] = Currency{
 				Symbol:  fmt.Sprintf("%s %s", curr.Symbol, curr.CurrencySymbol),
 				RateUSD: rate,
 				Type:    curr.Type,
