@@ -222,24 +222,33 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				selectedTable = page.CoinTable
 				selectedTable.ShowCursor = true
 				updateUI()
+
 			case "j", "<Down>":
 				selectedTable.ScrollDown()
+
 			case "k", "<Up>":
 				selectedTable.ScrollUp()
+
 			case "<C-d>":
 				selectedTable.ScrollHalfPageDown()
+
 			case "<C-u>":
 				selectedTable.ScrollHalfPageUp()
+
 			case "<C-f>":
 				selectedTable.ScrollPageDown()
+
 			case "<C-b>":
 				selectedTable.ScrollPageUp()
+
 			case "g":
 				if previousKey == "g" {
 					selectedTable.ScrollTop()
 				}
+
 			case "<Home>":
 				selectedTable.ScrollTop()
+
 			case "G", "<End>":
 				selectedTable.ScrollBottom()
 
