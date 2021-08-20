@@ -3,6 +3,8 @@ cryptgo
 
 [![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml)
 
+### Latest Stable Version: `v1.0.0`
+
 Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!
 
 ![logo](images/logo.png)
@@ -20,10 +22,45 @@ go get -u github.com/Gituser143/cryptgo
 Using Docker
 ------------
 
+### Running Image
+
+Replace `<version>` with a specific version for stable builds. Omitting `<:version>` or replacing using `main` as version provides the latest (in development) version.
+
 ```bash
+# Pull Image
+docker pull bhargavsnv/cryptgo:<version>
+
+# Run image
+docker run --rm -it -v "$HOME:/home/appuser" bhargavsnv/cryptgo
+```
+
+Optionally, an alias can be created for ease of use:
+
+```bash
+alias cryptgo='docker run --rm -it -v "$HOME:/home/appuser" bhargavsnv/cryptgo'
+```
+
+And run using:
+
+```bash
+cryptgo [flags]
+# or
+cryptgo [command]
+```
+
+### Building Image locally
+
+```bash
+# Clone the repository
 git clone https://github.com/Gituser143/cryptgo
+
+# Navigate into repository
 cd cryptgo
+
+# Build image
 docker build -t cryptgo .
+
+# Run image
 docker run --rm -it -v "$HOME:/home/appuser" cryptgo
 ```
 
@@ -33,8 +70,13 @@ From source:
 Building requires [Go](https://golang.org) to be installed.
 
 ```bash
+# Clone the repository
 git clone https://github.com/Gituser143/cryptgo
+
+# Navigate into repository
 cd cryptgo
+
+# Build executable
 go build cryptgo.go
 ```
 
