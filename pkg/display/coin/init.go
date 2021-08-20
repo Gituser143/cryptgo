@@ -131,7 +131,7 @@ func (page *coinPage) init() {
 	}
 	page.ExplorerTable.CursorColor = ui.ColorCyan
 
-	// Initalise Bar Graph
+	// Initialise Bar Graph
 	page.SupplyChart.Title = " Supply "
 	page.SupplyChart.Data = []float64{0, 0}
 	page.SupplyChart.Labels = []string{"Supply", "Max Supply"}

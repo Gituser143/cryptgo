@@ -21,7 +21,7 @@ import (
 	"os"
 )
 
-// Metadata holds persistant information to be stored to disk
+// Metadata holds persistent information to be stored to disk
 type Metadata struct {
 	Favourites map[string]bool    `json:"favourites"`
 	Currency   string             `json:"currency"`

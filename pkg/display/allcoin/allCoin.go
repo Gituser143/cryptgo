@@ -59,7 +59,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	changePercent := "24h"
 	changePercentWidget := uw.NewChangePercentPage()
 
-	// Initalise page and set selected table
+	// Initialise page and set selected table
 	page := newAllCoinPage()
 	selectedTable := page.CoinTable
 	utilitySelected := ""
@@ -597,7 +597,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
 				// Get change %
-				change := "NA"
+				var change string
 				percentageChange := api.GetPercentageChangeForDuration(val, changePercent)
 				if percentageChange < 0 {
 					change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -percentageChange)

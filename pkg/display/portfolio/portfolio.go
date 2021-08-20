@@ -270,7 +270,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 							return err
 						})
 
-						// Serve favourie coin prices
+						// Serve favourite coin prices
 						eg.Go(func() error {
 							err := api.GetFavouritePrices(coinCtx,
 								favourites,
@@ -418,7 +418,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					// Get coin details
 					price := fmt.Sprintf("%.2f", val.CurrentPrice/currencyVal)
 
-					change := "NA"
+					var change string
 					percentageChange := api.GetPercentageChangeForDuration(val, "24h")
 					if percentageChange < 0 {
 						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -percentageChange)

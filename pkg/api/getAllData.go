@@ -82,7 +82,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 
 	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
 		var finalErr error
-		data := AssetData{}
+		var data AssetData
 
 		defer func() {
 			if finalErr != nil {

@@ -39,7 +39,7 @@ type BarChart struct {
 	MaxVal   float64
 }
 
-// NewBarChart initalises and returns a pointer to a BarChart instance
+// NewBarChart initialises and returns a pointer to a BarChart instance
 func NewBarChart() *BarChart {
 	return &BarChart{
 		Block:        *ui.NewBlock(),
