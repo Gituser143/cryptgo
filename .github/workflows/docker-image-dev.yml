@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  dev push:
+  dev_publish:
 
     runs-on: ubuntu-latest
 
