@@ -37,6 +37,7 @@ const (
 	DOWN_ARROW = "▼"
 )
 
+// DisplayPortfolio serves the prtfolio page
 func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendData *bool) error {
 
 	// Initialise UI
@@ -56,7 +57,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 	// currency variables
 	currencyWidget := uw.NewCurrencyPage()
-	currencyID := utils.GetCurrency()
+	currencyID := utils.GetCurrencyID()
 	currencyID, currency, currencyVal := currencyWidget.Get(currencyID)
 
 	// get portfolio details
@@ -239,10 +240,10 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 					coinIDs := coinIDMap[symbol]
 
-					coinCapId := coinIDs.CoinCapID
-					coinGeckoId := coinIDs.CoinGeckoID
+					coinCapID := coinIDs.CoinCapID
+					coinGeckoID := coinIDs.CoinGeckoID
 
-					if coinGeckoId != "" {
+					if coinGeckoID != "" {
 						// Create new errorgroup for coin page
 						eg, coinCtx := errgroup.WithContext(ctx)
 						coinDataChannel := make(chan api.CoinData)
@@ -256,7 +257,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						eg.Go(func() error {
 							err := api.GetCoinHistory(
 								coinCtx,
-								coinGeckoId,
+								coinGeckoID,
 								intervalChannel,
 								coinDataChannel,
 							)
@@ -265,7 +266,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 						// Serve Coin Asset data
 						eg.Go(func() error {
-							err := api.GetCoinDetails(coinCtx, coinGeckoId, coinDataChannel)
+							err := api.GetCoinDetails(coinCtx, coinGeckoID, coinDataChannel)
 							return err
 						})
 
@@ -279,9 +280,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						})
 
 						// Serve Live price of coin
-						if coinCapId != "" {
+						if coinCapID != "" {
 							eg.Go(func() error {
-								api.GetLivePrice(coinCtx, coinCapId, coinPriceChannel)
+								api.GetLivePrice(coinCtx, coinCapID, coinPriceChannel)
 								// Send NA to indicate price is not being updated
 								go func() {
 									coinPriceChannel <- "NA"
@@ -296,7 +297,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
 								coinCtx,
-								coinGeckoId,
+								coinGeckoID,
 								coinIDMap,
 								intervalChannel,
 								coinDataChannel,
@@ -314,7 +315,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 							}
 						}
 
-						currencyID = utils.GetCurrency()
+						currencyID = utils.GetCurrencyID()
 						currencyID, currency, currencyVal = currencyWidget.Get(currencyID)
 
 					}

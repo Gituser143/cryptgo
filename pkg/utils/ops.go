@@ -16,7 +16,7 @@ limitations under the License.
 
 package utils
 
-// Return minimum float from a given number of floats
+// MinFloat64 returns minimum float from a given number of floats
 func MinFloat64(a ...float64) float64 {
 	var min float64
 	if len(a) > 0 {
@@ -33,7 +33,7 @@ func MinFloat64(a ...float64) float64 {
 	return min
 }
 
-// Return maximum float from a given number of floats
+// MaxFloat64 returns maximum float from a given number of floats
 func MaxFloat64(a ...float64) float64 {
 	var max float64
 	if len(a) > 0 {

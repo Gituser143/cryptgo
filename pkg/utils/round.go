@@ -19,11 +19,11 @@ package utils
 import "math"
 
 var (
-	K = math.Pow(10, 3)
-	M = math.Pow(10, 6)
-	G = math.Pow(10, 9)
-	T = math.Pow(10, 12)
-	Q = math.Pow(10, 15)
+	kilo = math.Pow(10, 3)
+	mega = math.Pow(10, 6)
+	giga = math.Pow(10, 9)
+	tera = math.Pow(10, 12)
+	peta = math.Pow(10, 15)
 )
 
 func roundOffNearestTen(num float64, divisor float64) float64 {
@@ -31,8 +31,8 @@ func roundOffNearestTen(num float64, divisor float64) float64 {
 	return math.Round(x*10) / 10
 }
 
-// Round values rounds off a pair of given floats to Thousands (K),
-// Millions (M) or Billions (B).
+// RoundValues rounds off a pair of given floats to Thousands (kilo),
+// Millions (mega) or Billions (giga).
 func RoundValues(num1, num2 float64) ([]float64, string) {
 	nums := []float64{}
 	var units string
@@ -44,29 +44,29 @@ func RoundValues(num1, num2 float64) ([]float64, string) {
 	}
 
 	switch {
-	case n < K:
+	case n < kilo:
 		nums = append(nums, num1)
 		nums = append(nums, num2)
 		units = ""
 
-	case n < M:
-		nums = append(nums, roundOffNearestTen(num1, K))
-		nums = append(nums, roundOffNearestTen(num2, K))
-		units = "K"
+	case n < mega:
+		nums = append(nums, roundOffNearestTen(num1, kilo))
+		nums = append(nums, roundOffNearestTen(num2, kilo))
+		units = "kilo"
 
-	case n < G:
-		nums = append(nums, roundOffNearestTen(num1, M))
-		nums = append(nums, roundOffNearestTen(num2, M))
+	case n < giga:
+		nums = append(nums, roundOffNearestTen(num1, mega))
+		nums = append(nums, roundOffNearestTen(num2, mega))
 		units = "M"
 
-	case n < T:
-		nums = append(nums, roundOffNearestTen(num1, G))
-		nums = append(nums, roundOffNearestTen(num2, G))
+	case n < tera:
+		nums = append(nums, roundOffNearestTen(num1, giga))
+		nums = append(nums, roundOffNearestTen(num2, giga))
 		units = "B"
 
-	case n >= Q:
-		nums = append(nums, roundOffNearestTen(num1, T))
-		nums = append(nums, roundOffNearestTen(num2, T))
+	case n >= peta:
+		nums = append(nums, roundOffNearestTen(num1, tera))
+		nums = append(nums, roundOffNearestTen(num2, tera))
 		units = "T"
 
 	default:

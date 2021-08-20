@@ -52,6 +52,7 @@ func NewLineGraph() *LineGraph {
 	}
 }
 
+// Draw draws the LineGraph onto the UI
 func (l *LineGraph) Draw(buf *ui.Buffer) {
 	l.Block.Draw(buf)
 	// we render each data point on to the canvas then copy over the braille to the buffer at the end

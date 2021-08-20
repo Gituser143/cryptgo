@@ -21,10 +21,10 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-var intervalRows [][]string = [][]string{{"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"90 Days"}, {"180 Days"}, {"1 Year"}, {"5 Years"}}
+var intervalRows = [][]string{{"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"90 Days"}, {"180 Days"}, {"1 Year"}, {"5 Years"}}
 
 // IntervalMap maps given interval string to format required by CoinGecko API
-var IntervalMap map[string]string = map[string]string{
+var IntervalMap = map[string]string{
 	"24 Hours": "24hr",
 	"7 Days":   "7d",
 	"14 Days":  "14d",
@@ -35,6 +35,7 @@ var IntervalMap map[string]string = map[string]string{
 	"5 Years":  "5yr",
 }
 
+// ChangeIntervalDurationTable holds a table to help user change duration intervals
 type ChangeIntervalDurationTable struct {
 	*widgets.Table
 }
@@ -61,6 +62,7 @@ func NewChangeIntervalPage() *ChangeIntervalDurationTable {
 	return c
 }
 
+// Resize helps resize the ChangeIntervalDurationTable according to terminal dimensions
 func (c *ChangeIntervalDurationTable) Resize(termWidth, termHeight int) {
 	textWidth := 50
 

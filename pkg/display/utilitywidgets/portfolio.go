@@ -28,6 +28,7 @@ import (
 	gecko "github.com/superoo7/go-gecko/v3"
 )
 
+// PortfolioTable holds a table which helps display a mini portfolio
 type PortfolioTable struct {
 	*widgets.Table
 }
@@ -56,6 +57,7 @@ func NewPortfolioPage() *PortfolioTable {
 	return p
 }
 
+// Resize helps resize the PortfolioTable according to terminal dimensions
 func (p *PortfolioTable) Resize(termWidth, termHeight int) {
 	textWidth := 100
 
@@ -79,7 +81,7 @@ func (p *PortfolioTable) Draw(buf *ui.Buffer) {
 	p.Table.Draw(buf)
 }
 
-// Update Portfolio data
+// UpdateRows data
 func (p *PortfolioTable) UpdateRows(portfolio map[string]float64, currency string, currencyVal float64) {
 
 	var wg sync.WaitGroup

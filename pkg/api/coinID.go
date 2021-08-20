@@ -23,11 +23,13 @@ import (
 	"sync"
 )
 
+// NewCoinIDMap returns an instance of CoinIDMap
 func NewCoinIDMap() CoinIDMap {
 	c := make(CoinIDMap)
 	return c
 }
 
+// Populate updates values into the CoinIDMap
 func (c CoinIDMap) Populate() {
 
 	var m sync.Mutex

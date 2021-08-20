@@ -21,12 +21,14 @@ import (
 	"os"
 )
 
+// Metadata holds persistant information to be stored to disk
 type Metadata struct {
 	Favourites map[string]bool    `json:"favourites"`
 	Currency   string             `json:"currency"`
 	Portfolio  map[string]float64 `json:"portfolio"`
 }
 
+// Currency holds currency data when fetched from CoinCap
 type Currency struct {
 	ID             string `json:"id"`
 	Symbol         string `json:"symbol"`
@@ -35,10 +37,7 @@ type Currency struct {
 	RateUSD        string `json:"rateUsd"`
 }
 
-type CurrencyData struct {
-	Data Currency `json:"data"`
-}
-
+// AllCurrencyData holds data of a group of currencies fetched from CoinCap
 type AllCurrencyData struct {
 	Data      []Currency `json:"data"`
 	Timestamp uint       `json:"timestamp"`
@@ -116,7 +115,8 @@ func GetPortfolio() map[string]float64 {
 	return map[string]float64{}
 }
 
-func GetCurrency() string {
+// GetCurrencyID returns the currencyID stored from metadata
+func GetCurrencyID() string {
 	metadata := Metadata{}
 
 	// Get home directory

@@ -43,61 +43,62 @@ func fill(x, y, w, h int, cell termbox.Cell) {
 	}
 }
 
-func rune_advance_len(r rune, pos int) int {
+func runeAdvanceLen(r rune, pos int) int {
 	if r == '\t' {
-		return tabstop_length - pos%tabstop_length
+		return tabstopLength - pos%tabstopLength
 	}
 	return runewidth.RuneWidth(r)
 }
 
-func voffset_coffset(text []byte, boffset int) (voffset, coffset int) {
+func voffsetCoffset(text []byte, boffset int) (voffset, coffset int) {
 	text = text[:boffset]
 	for len(text) > 0 {
 		r, size := utf8.DecodeRune(text)
 		text = text[size:]
-		coffset += 1
-		voffset += rune_advance_len(r, voffset)
+		coffset++
+		voffset += runeAdvanceLen(r, voffset)
 	}
 	return
 }
 
-func byte_slice_grow(s []byte, desired_cap int) []byte {
-	if cap(s) < desired_cap {
-		ns := make([]byte, len(s), desired_cap)
+func byteSliceGrow(s []byte, desiredCap int) []byte {
+	if cap(s) < desiredCap {
+		ns := make([]byte, len(s), desiredCap)
 		copy(ns, s)
 		return ns
 	}
 	return s
 }
 
-func byte_slice_remove(text []byte, from, to int) []byte {
+func byteSliceRemove(text []byte, from, to int) []byte {
 	size := to - from
 	copy(text[from:], text[to:])
 	text = text[:len(text)-size]
 	return text
 }
 
-func byte_slice_insert(text []byte, offset int, what []byte) []byte {
+func byteSliceInsert(text []byte, offset int, what []byte) []byte {
 	n := len(text) + len(what)
-	text = byte_slice_grow(text, n)
+	text = byteSliceGrow(text, n)
 	text = text[:n]
 	copy(text[offset+len(what):], text[offset:])
 	copy(text[offset:], what)
 	return text
 }
 
-const preferred_horizontal_threshold = 5
-const tabstop_length = 8
+const preferredHorizontalThreshold = 5
+const tabstopLength = 8
 
+// EditBox helps user provide input through a text box like widget
 type EditBox struct {
-	text           []byte
-	line_voffset   int
-	cursor_boffset int // cursor offset in bytes
-	cursor_voffset int // visual cursor offset in termbox cells
-	cursor_coffset int // cursor offset in unicode code points
+	text          []byte
+	lineVoffset   int
+	cursorBoffset int // cursor offset in bytes
+	cursorVoffset int // visual cursor offset in termbox cells
+	cursorCoffset int // cursor offset in unicode code points
 }
 
-// Draws the EditBox in the given location, 'h' is not used at the moment
+// Draw helps draw the EditBox in the given location, 'h' is not used at the moment
 func (eb *EditBox) Draw(x, y, w, h int) {
 	eb.AdjustVOffset(w)
 
@@ -110,13 +111,13 @@ func (eb *EditBox) Draw(x, y, w, h int) {
 	lx := 0
 	tabstop := 0
 	for {
-		rx := lx - eb.line_voffset
+		rx := lx - eb.lineVoffset
 		if len(t) == 0 {
 			break
 		}
 
 		if lx == tabstop {
-			tabstop += tabstop_length
+			tabstop += tabstopLength
 		}
 
 		if rx >= w {
@@ -128,7 +129,7 @@ func (eb *EditBox) Draw(x, y, w, h int) {
 		r, size := utf8.DecodeRune(t)
 		if r == '\t' {
 			for ; lx < tabstop; lx++ {
-				rx = lx - eb.line_voffset
+				rx = lx - eb.lineVoffset
 				if rx >= w {
 					goto next
 				}
@@ -147,142 +148,142 @@ func (eb *EditBox) Draw(x, y, w, h int) {
 		t = t[size:]
 	}
 
-	if eb.line_voffset != 0 {
+	if eb.lineVoffset != 0 {
 		termbox.SetCell(x, y, arrowLeft, colred, coldef)
 	}
 }
 
-// Adjusts line visual offset to a proper value depending on width
+// AdjustVOffset adjusts line visual offset to a proper value depending on width
 func (eb *EditBox) AdjustVOffset(width int) {
-	ht := preferred_horizontal_threshold
-	max_h_threshold := (width - 1) / 2
-	if ht > max_h_threshold {
-		ht = max_h_threshold
+	ht := preferredHorizontalThreshold
+	maxHorizontalThreshold := (width - 1) / 2
+	if ht > maxHorizontalThreshold {
+		ht = maxHorizontalThreshold
 	}
 
 	threshold := width - 1
-	if eb.line_voffset != 0 {
+	if eb.lineVoffset != 0 {
 		threshold = width - ht
 	}
-	if eb.cursor_voffset-eb.line_voffset >= threshold {
-		eb.line_voffset = eb.cursor_voffset + (ht - width + 1)
+	if eb.cursorVoffset-eb.lineVoffset >= threshold {
+		eb.lineVoffset = eb.cursorVoffset + (ht - width + 1)
 	}
 
-	if eb.line_voffset != 0 && eb.cursor_voffset-eb.line_voffset < ht {
-		eb.line_voffset = eb.cursor_voffset - ht
-		if eb.line_voffset < 0 {
-			eb.line_voffset = 0
+	if eb.lineVoffset != 0 && eb.cursorVoffset-eb.lineVoffset < ht {
+		eb.lineVoffset = eb.cursorVoffset - ht
+		if eb.lineVoffset < 0 {
+			eb.lineVoffset = 0
 		}
 	}
 }
 
-func (eb *EditBox) MoveCursorTo(boffset int) {
-	eb.cursor_boffset = boffset
-	eb.cursor_voffset, eb.cursor_coffset = voffset_coffset(eb.text, boffset)
+func (eb *EditBox) moveCursorTo(boffset int) {
+	eb.cursorBoffset = boffset
+	eb.cursorVoffset, eb.cursorCoffset = voffsetCoffset(eb.text, boffset)
 }
 
-func (eb *EditBox) RuneUnderCursor() (rune, int) {
-	return utf8.DecodeRune(eb.text[eb.cursor_boffset:])
+func (eb *EditBox) runeUnderCursor() (rune, int) {
+	return utf8.DecodeRune(eb.text[eb.cursorBoffset:])
 }
 
-func (eb *EditBox) RuneBeforeCursor() (rune, int) {
-	return utf8.DecodeLastRune(eb.text[:eb.cursor_boffset])
+func (eb *EditBox) runeBeforeCursor() (rune, int) {
+	return utf8.DecodeLastRune(eb.text[:eb.cursorBoffset])
 }
 
-func (eb *EditBox) MoveCursorOneRuneBackward() {
-	if eb.cursor_boffset == 0 {
+func (eb *EditBox) moveCursorOneRuneBackward() {
+	if eb.cursorBoffset == 0 {
 		return
 	}
-	_, size := eb.RuneBeforeCursor()
-	eb.MoveCursorTo(eb.cursor_boffset - size)
+	_, size := eb.runeBeforeCursor()
+	eb.moveCursorTo(eb.cursorBoffset - size)
 }
 
-func (eb *EditBox) MoveCursorOneRuneForward() {
-	if eb.cursor_boffset == len(eb.text) {
+func (eb *EditBox) moveCursorOneRuneForward() {
+	if eb.cursorBoffset == len(eb.text) {
 		return
 	}
-	_, size := eb.RuneUnderCursor()
-	eb.MoveCursorTo(eb.cursor_boffset + size)
+	_, size := eb.runeUnderCursor()
+	eb.moveCursorTo(eb.cursorBoffset + size)
 }
 
-func (eb *EditBox) MoveCursorToBeginningOfTheLine() {
-	eb.MoveCursorTo(0)
+func (eb *EditBox) moveCursorToBeginningOfTheLine() {
+	eb.moveCursorTo(0)
 }
 
-func (eb *EditBox) MoveCursorToEndOfTheLine() {
-	eb.MoveCursorTo(len(eb.text))
+func (eb *EditBox) moveCursorToEndOfTheLine() {
+	eb.moveCursorTo(len(eb.text))
 }
 
-func (eb *EditBox) DeleteRuneBackward() {
-	if eb.cursor_boffset == 0 {
+func (eb *EditBox) deleteRuneBackward() {
+	if eb.cursorBoffset == 0 {
 		return
 	}
 
-	eb.MoveCursorOneRuneBackward()
-	_, size := eb.RuneUnderCursor()
-	eb.text = byte_slice_remove(eb.text, eb.cursor_boffset, eb.cursor_boffset+size)
+	eb.moveCursorOneRuneBackward()
+	_, size := eb.runeUnderCursor()
+	eb.text = byteSliceRemove(eb.text, eb.cursorBoffset, eb.cursorBoffset+size)
 }
 
-func (eb *EditBox) DeleteRuneForward() {
-	if eb.cursor_boffset == len(eb.text) {
+func (eb *EditBox) deleteRuneForward() {
+	if eb.cursorBoffset == len(eb.text) {
 		return
 	}
-	_, size := eb.RuneUnderCursor()
-	eb.text = byte_slice_remove(eb.text, eb.cursor_boffset, eb.cursor_boffset+size)
+	_, size := eb.runeUnderCursor()
+	eb.text = byteSliceRemove(eb.text, eb.cursorBoffset, eb.cursorBoffset+size)
 }
 
-func (eb *EditBox) DeleteTheRestOfTheLine() {
-	eb.text = eb.text[:eb.cursor_boffset]
+func (eb *EditBox) deleteTheRestOfTheLine() {
+	eb.text = eb.text[:eb.cursorBoffset]
 }
 
-func (eb *EditBox) InsertRune(r rune) {
+func (eb *EditBox) insertRune(r rune) {
 	var buf [utf8.UTFMax]byte
 	n := utf8.EncodeRune(buf[:], r)
-	eb.text = byte_slice_insert(eb.text, eb.cursor_boffset, buf[:n])
-	eb.MoveCursorOneRuneForward()
+	eb.text = byteSliceInsert(eb.text, eb.cursorBoffset, buf[:n])
+	eb.moveCursorOneRuneForward()
 }
 
-// Please, keep in mind that cursor depends on the value of line_voffset, which
+// Please, keep in mind that cursor depends on the value of lineVoffset, which
 // is being set on Draw() call, so.. call this method after Draw() one.
-func (eb *EditBox) CursorX() int {
-	return eb.cursor_voffset - eb.line_voffset
+func (eb *EditBox) cursorX() int {
+	return eb.cursorVoffset - eb.lineVoffset
 }
 
-var edit_box EditBox
+var editBox EditBox
 
-const edit_box_width = 30
+const editBoxWidth = 30
 
-func redraw_all(symbol string) {
+func redrawAll(symbol string) {
 	const coldef = termbox.ColorDefault
 	termbox.Clear(coldef, coldef)
 	w, h := termbox.Size()
 
 	midy := h / 2
-	midx := (w - edit_box_width) / 2
+	midx := (w - editBoxWidth) / 2
 
 	// unicode box drawing chars around the edit box
 	if runewidth.EastAsianWidth {
 		termbox.SetCell(midx-1, midy, '|', coldef, coldef)
-		termbox.SetCell(midx+edit_box_width, midy, '|', coldef, coldef)
+		termbox.SetCell(midx+editBoxWidth, midy, '|', coldef, coldef)
 		termbox.SetCell(midx-1, midy-1, '+', coldef, coldef)
 		termbox.SetCell(midx-1, midy+1, '+', coldef, coldef)
-		termbox.SetCell(midx+edit_box_width, midy-1, '+', coldef, coldef)
-		termbox.SetCell(midx+edit_box_width, midy+1, '+', coldef, coldef)
-		fill(midx, midy-1, edit_box_width, 1, termbox.Cell{Ch: '-'})
-		fill(midx, midy+1, edit_box_width, 1, termbox.Cell{Ch: '-'})
+		termbox.SetCell(midx+editBoxWidth, midy-1, '+', coldef, coldef)
+		termbox.SetCell(midx+editBoxWidth, midy+1, '+', coldef, coldef)
+		fill(midx, midy-1, editBoxWidth, 1, termbox.Cell{Ch: '-'})
+		fill(midx, midy+1, editBoxWidth, 1, termbox.Cell{Ch: '-'})
 	} else {
 		termbox.SetCell(midx-1, midy, '│', coldef, coldef)
-		termbox.SetCell(midx+edit_box_width, midy, '│', coldef, coldef)
+		termbox.SetCell(midx+editBoxWidth, midy, '│', coldef, coldef)
 		termbox.SetCell(midx-1, midy-1, '┌', coldef, coldef)
 		termbox.SetCell(midx-1, midy+1, '└', coldef, coldef)
-		termbox.SetCell(midx+edit_box_width, midy-1, '┐', coldef, coldef)
-		termbox.SetCell(midx+edit_box_width, midy+1, '┘', coldef, coldef)
-		fill(midx, midy-1, edit_box_width, 1, termbox.Cell{Ch: '─'})
-		fill(midx, midy+1, edit_box_width, 1, termbox.Cell{Ch: '─'})
+		termbox.SetCell(midx+editBoxWidth, midy-1, '┐', coldef, coldef)
+		termbox.SetCell(midx+editBoxWidth, midy+1, '┘', coldef, coldef)
+		fill(midx, midy-1, editBoxWidth, 1, termbox.Cell{Ch: '─'})
+		fill(midx, midy+1, editBoxWidth, 1, termbox.Cell{Ch: '─'})
 	}
 
-	edit_box.Draw(midx, midy, edit_box_width, 1)
-	termbox.SetCursor(midx+edit_box.CursorX(), midy)
+	editBox.Draw(midx, midy, editBoxWidth, 1)
+	termbox.SetCursor(midx+editBox.cursorX(), midy)
 
 	title := fmt.Sprintf(" Enter Amount in %s ", symbol)
 	tbprint(midx, midy-1, coldef, coldef, title)
@@ -306,7 +307,7 @@ func init() {
 func DrawEdit(ev <-chan ui.Event, symbol string) string {
 	termbox.SetInputMode(termbox.InputEsc)
 
-	redraw_all(symbol)
+	redrawAll(symbol)
 	defer termbox.HideCursor()
 	for {
 		for e := range ev {
@@ -314,31 +315,31 @@ func DrawEdit(ev <-chan ui.Event, symbol string) string {
 			case "<Escape>":
 				return ""
 			case "<Enter>":
-				return string(edit_box.text)
+				return string(editBox.text)
 			case "<Left>":
-				edit_box.MoveCursorOneRuneBackward()
+				editBox.moveCursorOneRuneBackward()
 			case "<Right>":
-				edit_box.MoveCursorOneRuneForward()
+				editBox.moveCursorOneRuneForward()
 			case "<C-<Backspace>>", "<Backspace>":
-				edit_box.DeleteRuneBackward()
+				editBox.deleteRuneBackward()
 			case "<Delete>", "<C-d>":
-				edit_box.DeleteRuneForward()
+				editBox.deleteRuneForward()
 			case "<Tab>":
-				edit_box.InsertRune('\t')
+				editBox.insertRune('\t')
 			case "<Space>":
-				edit_box.InsertRune(' ')
+				editBox.insertRune(' ')
 			case "<C-k>":
-				edit_box.DeleteTheRestOfTheLine()
+				editBox.deleteTheRestOfTheLine()
 			case "<Home>":
-				edit_box.MoveCursorToBeginningOfTheLine()
+				editBox.moveCursorToBeginningOfTheLine()
 			case "<End>":
-				edit_box.MoveCursorToEndOfTheLine()
+				editBox.moveCursorToEndOfTheLine()
 			default:
 				if len(e.ID) == 1 && []rune(e.ID)[0] != 0 {
-					edit_box.InsertRune([]rune(e.ID)[0])
+					editBox.insertRune([]rune(e.ID)[0])
 				}
 			}
-			redraw_all(symbol)
+			redrawAll(symbol)
 		}
 	}
 }

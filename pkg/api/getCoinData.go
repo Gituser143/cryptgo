@@ -120,7 +120,7 @@ func GetCoinHistory(ctx context.Context, id string, intervalChannel chan string,
 	geckoClient := gecko.NewClient(nil)
 
 	return utils.LoopTick(ctx, time.Duration(3)*time.Second, func(errChan chan error) {
-		var finalErr error = nil
+		var finalErr error
 
 		defer func() {
 			if finalErr != nil {
@@ -195,7 +195,7 @@ func GetCoinDetails(ctx context.Context, id string, dataChannel chan CoinData) e
 	sparkline := false
 
 	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
-		var finalErr error = nil
+		var finalErr error
 
 		defer func() {
 			if finalErr != nil {
@@ -321,7 +321,7 @@ func GetLivePrice(ctx context.Context, id string, dataChannel chan string) error
 	msg := make(map[string]string)
 
 	return utils.LoopTick(ctx, time.Duration(100*time.Millisecond), func(errChan chan error) {
-		var finalErr error = nil
+		var finalErr error
 
 		// Defer panic recovery for closed websocket
 		defer func() {

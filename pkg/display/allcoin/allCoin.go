@@ -52,7 +52,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	coinIDMap.Populate()
 
 	currencyWidget := uw.NewCurrencyPage()
-	currencyID := utils.GetCurrency()
+	currencyID := utils.GetCurrencyID()
 	currencyID, currency, currencyVal := currencyWidget.Get(currencyID)
 
 	// Variables for percentage change
@@ -368,10 +368,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					}
 					coinIDs := coinIDMap[symbol]
 
-					coinCapId := coinIDs.CoinCapID
-					coinGeckoId := coinIDs.CoinGeckoID
+					coinCapID := coinIDs.CoinCapID
+					coinGeckoID := coinIDs.CoinGeckoID
 
-					if coinGeckoId != "" {
+					if coinGeckoID != "" {
 						// Create new errorgroup for coin page
 						eg, coinCtx := errgroup.WithContext(ctx)
 						coinDataChannel := make(chan api.CoinData)
@@ -385,7 +385,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						eg.Go(func() error {
 							err := api.GetCoinHistory(
 								coinCtx,
-								coinGeckoId,
+								coinGeckoID,
 								intervalChannel,
 								coinDataChannel,
 							)
@@ -394,7 +394,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						// Serve Coin Asset data
 						eg.Go(func() error {
-							err := api.GetCoinDetails(coinCtx, coinGeckoId, coinDataChannel)
+							err := api.GetCoinDetails(coinCtx, coinGeckoID, coinDataChannel)
 							return err
 						})
 
@@ -408,9 +408,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						})
 
 						// Serve Live price of coin
-						if coinCapId != "" {
+						if coinCapID != "" {
 							eg.Go(func() error {
-								api.GetLivePrice(coinCtx, coinCapId, coinPriceChannel)
+								api.GetLivePrice(coinCtx, coinCapID, coinPriceChannel)
 								// Send NA to indicate price is not being updated
 								go func() {
 									coinPriceChannel <- "NA"
@@ -425,7 +425,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						eg.Go(func() error {
 							err := coin.DisplayCoin(
 								coinCtx,
-								coinGeckoId,
+								coinGeckoID,
 								coinIDMap,
 								intervalChannel,
 								coinDataChannel,
@@ -443,7 +443,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							}
 						}
 
-						currencyID = utils.GetCurrency()
+						currencyID = utils.GetCurrencyID()
 						currencyID, currency, currencyVal = currencyWidget.Get(currencyID)
 
 					}

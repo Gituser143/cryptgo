@@ -25,6 +25,7 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
+// BarChart represnts a custom UI widget
 type BarChart struct {
 	NumFormatter func(float64) string
 	Labels       []string
@@ -38,6 +39,7 @@ type BarChart struct {
 	MaxVal   float64
 }
 
+// NewBarChart initalises and returns a pointer to a BarChart instance
 func NewBarChart() *BarChart {
 	return &BarChart{
 		Block:        *ui.NewBlock(),
@@ -50,6 +52,7 @@ func NewBarChart() *BarChart {
 	}
 }
 
+// Draw helps draw the barChart onto the UI
 func (b *BarChart) Draw(buf *ui.Buffer) {
 	b.Block.Draw(buf)
 

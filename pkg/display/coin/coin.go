@@ -52,7 +52,7 @@ func DisplayCoin(
 	// Currency table
 	currencyWidget := uw.NewCurrencyPage()
 
-	currencyID := utils.GetCurrency()
+	currencyID := utils.GetCurrencyID()
 	currencyID, currency, currencyVal := currencyWidget.Get(currencyID)
 
 	// variables for graph interval

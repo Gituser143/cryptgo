@@ -77,11 +77,11 @@ func GetPercentageChangeForDuration(coinData geckoTypes.CoinsMarketItem, duratio
 	return coinData.PriceChangePercentage24h
 }
 
-// Get Assets serves data about top 100 coins for the main page
+// GetAssets serves data about top 100 coins for the main page
 func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) error {
 
 	return utils.LoopTick(ctx, time.Duration(10)*time.Second, func(errChan chan error) {
-		var finalErr error = nil
+		var finalErr error
 		data := AssetData{}
 
 		defer func() {

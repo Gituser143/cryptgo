@@ -59,7 +59,7 @@ type Currency struct {
 type CurrencyIDMap map[string]Currency
 
 // NewCurrencyIDMap creates and returns an instance of CurrencyIDMap
-func NewCurencyIDMap() CurrencyIDMap {
+func NewCurrencyIDMap() CurrencyIDMap {
 	c := make(CurrencyIDMap)
 	return c
 }
@@ -114,14 +114,15 @@ func (c CurrencyIDMap) Populate() {
 func (c *CurrencyTable) Get(currencyID string) (string, string, float64) {
 	if val, ok := (*c.IDMap)[currencyID]; ok {
 		return currencyID, val.Symbol, val.RateUSD
-	} else {
-		return "united-states-dollar", "USD $", 1
 	}
+
+	return "united-states-dollar", "USD $", 1
+
 }
 
 // NewCurrencyPage creates, initialises and returns a pointer to an instance of CurrencyTable
 func NewCurrencyPage() *CurrencyTable {
-	idMap := NewCurencyIDMap()
+	idMap := NewCurrencyIDMap()
 	idMap.Populate()
 
 	c := &CurrencyTable{
@@ -147,6 +148,7 @@ func NewCurrencyPage() *CurrencyTable {
 	return c
 }
 
+// Resize resizes the Currency Table as per given terminal dimensions
 func (c *CurrencyTable) Resize(termWidth, termHeight int) {
 	textWidth := 80
 
@@ -175,7 +177,7 @@ func (c *CurrencyTable) Draw(buf *ui.Buffer) {
 	c.Table.Draw(buf)
 }
 
-// UpdateAll fetches rates of all currencies and updates them as rows in the table
+// UpdateRows fetches rates of all currencies and updates them as rows in the table
 func (c *CurrencyTable) UpdateRows(allCurrencies bool) {
 	currencies := map[string]bool{
 		"united-states-dollar":   true,

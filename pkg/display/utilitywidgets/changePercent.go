@@ -21,10 +21,10 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-var durationRows [][]string = [][]string{{"1 Hour"}, {"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"200 Days"}, {"1 Year"}}
+var durationRows = [][]string{{"1 Hour"}, {"24 Hours"}, {"7 Days"}, {"14 Days"}, {"30 Days"}, {"200 Days"}, {"1 Year"}}
 
 // DurationMap maps duration strings to the format required by coinGecko API
-var DurationMap map[string]string = map[string]string{
+var DurationMap = map[string]string{
 	"1 Hour":   "1h",
 	"24 Hours": "24h",
 	"7 Days":   "7d",
@@ -34,11 +34,12 @@ var DurationMap map[string]string = map[string]string{
 	"1 Year":   "1y",
 }
 
+// ChangePercentageDurationTable holds a table which helps change percentage duration values
 type ChangePercentageDurationTable struct {
 	*widgets.Table
 }
 
-// NewCurrencyPage creates, initialises and returns a pointer to
+// NewChangePercentPage creates, initialises and returns a pointer to
 // an instance of CurrencyTable
 func NewChangePercentPage() *ChangePercentageDurationTable {
 	c := &ChangePercentageDurationTable{
@@ -60,6 +61,7 @@ func NewChangePercentPage() *ChangePercentageDurationTable {
 	return c
 }
 
+// Resize helps rresize the ChangePercentageDurationTable according to terminal dimensions
 func (c *ChangePercentageDurationTable) Resize(termWidth, termHeight int) {
 	textWidth := 50
 

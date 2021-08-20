@@ -30,7 +30,7 @@ const (
 	DOWN_ARROW = "▼"
 )
 
-// Custom table widget
+// Table represents a custom table widget
 type Table struct {
 	*ui.Block
 
@@ -77,6 +77,7 @@ func NewTable() *Table {
 	}
 }
 
+// Draw helps draw the Table onto the UI
 func (t *Table) Draw(buf *ui.Buffer) {
 	t.Block.Draw(buf)
 
@@ -221,51 +222,50 @@ func (t *Table) calcPos() {
 	}
 }
 
+// ScrollUp moves the cursor one position upwards
 func (t *Table) ScrollUp() {
 	t.SelectedRow--
 	t.calcPos()
 }
 
+// ScrollDown moves the cursor one position downwards
 func (t *Table) ScrollDown() {
 	t.SelectedRow++
 	t.calcPos()
 }
 
+// ScrollTop moves the cursor to the top
 func (t *Table) ScrollTop() {
 	t.SelectedRow = 0
 	t.calcPos()
 }
 
+// ScrollBottom moves the cursor to the bottom
 func (t *Table) ScrollBottom() {
 	t.SelectedRow = len(t.Rows) - 1
 	t.calcPos()
 }
 
+// ScrollHalfPageUp moves the cursor half a page up
 func (t *Table) ScrollHalfPageUp() {
 	t.SelectedRow = t.SelectedRow - (t.Inner.Dy()-2)/2
 	t.calcPos()
 }
 
+// ScrollHalfPageDown moves the cursor half a page down
 func (t *Table) ScrollHalfPageDown() {
 	t.SelectedRow = t.SelectedRow + (t.Inner.Dy()-2)/2
 	t.calcPos()
 }
 
+// ScrollPageUp moves the cursor a page up
 func (t *Table) ScrollPageUp() {
 	t.SelectedRow -= (t.Inner.Dy() - 2)
 	t.calcPos()
 }
 
+// ScrollPageDown moves the cursor a page down
 func (t *Table) ScrollPageDown() {
 	t.SelectedRow += (t.Inner.Dy() - 2)
 	t.calcPos()
-}
-
-func (t *Table) HandleClick(x, y int) {
-	x = x - t.Min.X
-	y = y - t.Min.Y
-	if (x > 0 && x <= t.Inner.Dx()) && (y > 0 && y <= t.Inner.Dy()) {
-		t.SelectedRow = (t.TopRow + y) - 2
-		t.calcPos()
-	}
 }

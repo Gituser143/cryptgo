@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-// LoopTick, runs a given action in a loop in periods of 't' duration. It exits
+// LoopTick runs a given action in a loop in periods of 't' duration. It exits
 // when the context is cancelled
 func LoopTick(ctx context.Context, t time.Duration, action func(errChan chan error)) error {
 	ticker := time.NewTicker(t)
