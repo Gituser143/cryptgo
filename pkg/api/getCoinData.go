@@ -28,11 +28,6 @@ import (
 	geckoTypes "github.com/superoo7/go-gecko/v3/types"
 )
 
-const (
-	UP_ARROW   = "▲"
-	DOWN_ARROW = "▼"
-)
-
 // GetFavouritePrices gets coin prices for coins specified by favourites.
 // This data is returned on the dataChannel.
 func GetFavouritePrices(ctx context.Context, favourites map[string]bool, dataChannel chan CoinData) error {
@@ -244,9 +239,9 @@ func GetCoinDetails(ctx context.Context, id string, dataChannel chan CoinData) e
 		for i, row := range changePercents {
 			change := row[1]
 			if string(change[0]) == "-" {
-				change = DOWN_ARROW + " " + change[1:]
+				change = utils.DownArrow + " " + change[1:]
 			} else {
-				change = UP_ARROW + " " + change
+				change = utils.UpArrow + " " + change
 			}
 			changePercents[i][1] = change
 		}

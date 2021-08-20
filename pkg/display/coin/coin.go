@@ -29,11 +29,6 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
-const (
-	UP_ARROW   = "▲"
-	DOWN_ARROW = "▼"
-)
-
 // DisplayCoin displays the per coin values and details along with a favourites table. It uses the same uiEvents channel as the root page
 func DisplayCoin(
 	ctx context.Context,
@@ -318,7 +313,7 @@ func DisplayCoin(
 						idx, _ := strconv.Atoi(e.ID)
 						favSortIdx = idx - 1
 						page.FavouritesTable.Header = append([]string{}, favHeader...)
-						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.UpArrow
 						favSortAsc = true
 						utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
@@ -327,7 +322,7 @@ func DisplayCoin(
 						page.FavouritesTable.Header = append([]string{}, favHeader...)
 						idx, _ := strconv.Atoi(e.ID[2:3])
 						favSortIdx = idx - 1
-						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.DownArrow
 						favSortAsc = false
 						utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 					}
@@ -440,9 +435,9 @@ func DisplayCoin(
 				utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
 				if favSortAsc {
-					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.UpArrow
 				} else {
-					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.DownArrow
 				}
 			} else {
 				utils.SortData(page.FavouritesTable.Rows, 0, true, "FAVOURITES")

@@ -22,11 +22,6 @@ import (
 	"strings"
 )
 
-const (
-	UP_ARROW   = "▲"
-	DOWN_ARROW = "▼"
-)
-
 // SortData helps sort table rows. It sorts the table based on values given
 // in the sortIdx column and sorts ascending if sortAsc is true.
 // sortCase is set to identify the set of 'less' functions to use to
@@ -69,12 +64,12 @@ func SortData(data [][]string, sortIdx int, sortAsc bool, sortCase string) {
 		x1 := strings.Split(data[i][sortIdx], " ")
 		y1 := strings.Split(data[j][sortIdx], " ")
 		x, _ := strconv.ParseFloat(x1[1], 64)
-		if string(x1[0]) == DOWN_ARROW {
+		if string(x1[0]) == DownArrow {
 			x = -x
 		}
 
 		y, _ := strconv.ParseFloat(y1[1], 64)
-		if string(y1[0]) == DOWN_ARROW {
+		if string(y1[0]) == DownArrow {
 			y = -y
 		}
 

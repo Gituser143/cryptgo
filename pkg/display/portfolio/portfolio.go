@@ -32,11 +32,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	UP_ARROW   = "▲"
-	DOWN_ARROW = "▼"
-)
-
 // DisplayPortfolio serves the prtfolio page
 func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendData *bool) error {
 
@@ -375,7 +370,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					idx, _ := strconv.Atoi(e.ID)
 					coinSortIdx = idx - 1
 					page.CoinTable.Header = append([]string{}, coinHeader...)
-					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.UpArrow
 					coinSortAsc = true
 					utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
 				}
@@ -386,7 +381,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					page.CoinTable.Header = append([]string{}, coinHeader...)
 					idx, _ := strconv.Atoi(e.ID[2:3])
 					coinSortIdx = idx - 1
-					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.DownArrow
 					coinSortAsc = false
 					utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
 				}
@@ -421,9 +416,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					var change string
 					percentageChange := api.GetPercentageChangeForDuration(val, "24h")
 					if percentageChange < 0 {
-						change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -percentageChange)
+						change = fmt.Sprintf("%s %.2f", utils.DownArrow, -percentageChange)
 					} else {
-						change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
+						change = fmt.Sprintf("%s %.2f", utils.UpArrow, percentageChange)
 					}
 
 					rank := fmt.Sprintf("%d", val.MarketCapRank)
@@ -501,9 +496,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 			for _, duration := range durations {
 				change := ""
 				if performersMap[duration].BestVal < 0 {
-					change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -performersMap[duration].BestVal)
+					change = fmt.Sprintf("%s %.2f", utils.DownArrow, -performersMap[duration].BestVal)
 				} else {
-					change = fmt.Sprintf("%s %.2f", UP_ARROW, performersMap[duration].BestVal)
+					change = fmt.Sprintf("%s %.2f", utils.UpArrow, performersMap[duration].BestVal)
 				}
 
 				BestPerformerRows = append(BestPerformerRows, []string{
@@ -513,9 +508,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 				})
 
 				if performersMap[duration].WorstVal < 0 {
-					change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -performersMap[duration].WorstVal)
+					change = fmt.Sprintf("%s %.2f", utils.DownArrow, -performersMap[duration].WorstVal)
 				} else {
-					change = fmt.Sprintf("%s %.2f", UP_ARROW, performersMap[duration].WorstVal)
+					change = fmt.Sprintf("%s %.2f", utils.UpArrow, performersMap[duration].WorstVal)
 				}
 
 				WorstPerformerRows = append(WorstPerformerRows, []string{
@@ -534,9 +529,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 				utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "PORTFOLIO")
 
 				if coinSortAsc {
-					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.UpArrow
 				} else {
-					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.DownArrow
 				}
 			}
 

@@ -32,11 +32,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	UP_ARROW   = "▲"
-	DOWN_ARROW = "▼"
-)
-
 // DisplayAllCoins displays the main page with top coin prices, favourites and
 // general coin asset data
 func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendData *bool) error {
@@ -398,7 +393,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							return err
 						})
 
-						// Serve favourie coin prices
+						// Serve favourite coin prices
 						eg.Go(func() error {
 							err := api.GetFavouritePrices(coinCtx,
 								favourites,
@@ -518,7 +513,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						idx, _ := strconv.Atoi(e.ID)
 						coinSortIdx = idx - 1
 						page.CoinTable.Header = append([]string{}, coinHeader...)
-						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.UpArrow
 						coinSortAsc = true
 						utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
 
@@ -527,7 +522,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						page.CoinTable.Header = append([]string{}, coinHeader...)
 						idx, _ := strconv.Atoi(e.ID[2:3])
 						coinSortIdx = idx - 1
-						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.DownArrow
 						coinSortAsc = false
 						utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
 					}
@@ -539,7 +534,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						idx, _ := strconv.Atoi(e.ID)
 						favSortIdx = idx - 1
 						page.FavouritesTable.Header = append([]string{}, favHeader...)
-						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.UpArrow
 						favSortAsc = true
 						utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
@@ -548,7 +543,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						page.FavouritesTable.Header = append([]string{}, favHeader...)
 						idx, _ := strconv.Atoi(e.ID[2:3])
 						favSortIdx = idx - 1
-						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+						page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.DownArrow
 						favSortAsc = false
 						utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 					}
@@ -600,9 +595,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				var change string
 				percentageChange := api.GetPercentageChangeForDuration(val, changePercent)
 				if percentageChange < 0 {
-					change = fmt.Sprintf("%s %.2f", DOWN_ARROW, -percentageChange)
+					change = fmt.Sprintf("%s %.2f", utils.DownArrow, -percentageChange)
 				} else {
-					change = fmt.Sprintf("%s %.2f", UP_ARROW, percentageChange)
+					change = fmt.Sprintf("%s %.2f", utils.UpArrow, percentageChange)
 				}
 
 				units := ""
@@ -650,9 +645,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
 
 				if coinSortAsc {
-					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + UP_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.UpArrow
 				} else {
-					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + DOWN_ARROW
+					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.DownArrow
 				}
 			}
 
@@ -661,9 +656,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				utils.SortData(page.FavouritesTable.Rows, favSortIdx, favSortAsc, "FAVOURITES")
 
 				if favSortAsc {
-					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + UP_ARROW
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.UpArrow
 				} else {
-					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + DOWN_ARROW
+					page.FavouritesTable.Header[favSortIdx] = favHeader[favSortIdx] + " " + utils.DownArrow
 				}
 			}
 

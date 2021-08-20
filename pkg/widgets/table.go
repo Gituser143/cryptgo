@@ -22,12 +22,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Gituser143/cryptgo/pkg/utils"
 	ui "github.com/gizak/termui/v3"
-)
-
-const (
-	UP_ARROW   = "▲"
-	DOWN_ARROW = "▼"
 )
 
 // Table represents a custom table widget
@@ -159,7 +155,7 @@ func (t *Table) Draw(buf *ui.Buffer) {
 				} else {
 					rowData := strings.Split(t.Rows[rowNum][i], " ")
 					style.Fg = ui.ColorGreen
-					if string(rowData[0]) == DOWN_ARROW {
+					if string(rowData[0]) == utils.DownArrow {
 						style.Fg = ui.ColorRed
 					}
 				}
