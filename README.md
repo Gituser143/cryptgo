@@ -1,9 +1,9 @@
 cryptgo
 =======
 
-[![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml)
+[![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/gituser143/cryptgo)](https://goreportcard.com/report/github.com/gituser143/cryptgo) [![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/Gituser143/cryptgo)
 
-### Latest Stable Version: `v1.0.0`
+### Latest Stable Version: [![Version](https://img.shields.io/badge/Version-v1.0.1-blue.svg)](https://shields.io/)
 
 Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!
 
