@@ -61,7 +61,7 @@ cd cryptgo
 docker build -t cryptgo .
 
 # Run image
-docker run --rm -it -v "$HOME:/home/appuser" cryptgo
+docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo
 ```
 
 From source:
