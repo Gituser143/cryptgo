@@ -7,6 +7,7 @@ RUN CGO_ENABLED=0 GOOS=linux \
 FROM alpine:latest
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
+ENV HOME /home/appuser/
 COPY --from=builder /app/output/cryptgo /app/cryptgo
 
 ENTRYPOINT ["/app/cryptgo"]

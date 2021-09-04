@@ -3,7 +3,7 @@ cryptgo
 
 [![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/gituser143/cryptgo)](https://goreportcard.com/report/github.com/gituser143/cryptgo) [![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/Gituser143/cryptgo)
 
-### Latest Stable Version: [![Version](https://img.shields.io/badge/Version-v1.0.1-blue.svg)](https://shields.io/)
+### Latest Stable Version: [![Version](https://img.shields.io/badge/Version-v1.0.1-blue.svg)](https://github.com/Gituser143/cryptgo)
 
 Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!
 
@@ -31,13 +31,13 @@ Replace `<version>` with a specific version for stable builds. Omitting `<:versi
 docker pull bhargavsnv/cryptgo:<version>
 
 # Run image
-docker run --rm -it -v "$HOME:/home/appuser" bhargavsnv/cryptgo
+docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo
 ```
 
 Optionally, an alias can be created for ease of use:
 
 ```bash
-alias cryptgo='docker run --rm -it -v "$HOME:/home/appuser" bhargavsnv/cryptgo'
+alias cryptgo='docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo'
 ```
 
 And run using:
@@ -61,7 +61,7 @@ cd cryptgo
 docker build -t cryptgo .
 
 # Run image
-docker run --rm -it -v "$HOME:/home/appuser" cryptgo
+docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo
 ```
 
 From source:
