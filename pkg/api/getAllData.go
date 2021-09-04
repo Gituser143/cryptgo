@@ -92,7 +92,7 @@ func GetAssets(ctx context.Context, dataChannel chan AssetData, sendData *bool) 
 
 		if *sendData {
 			// Fetch Data
-			coinsData, err := getTopNCoins(100)
+			coinsData, err := getTopNCoins(250)
 			if err != nil {
 				finalErr = err
 				return
