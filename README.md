@@ -31,13 +31,13 @@ Replace `<version>` with a specific version for stable builds. Omitting `<:versi
 docker pull bhargavsnv/cryptgo:<version>
 
 # Run image
-docker run --rm -it -v "$HOME:/home/appuser" bhargavsnv/cryptgo
+docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo
 ```
 
 Optionally, an alias can be created for ease of use:
 
 ```bash
-alias cryptgo='docker run --rm -it -v "$HOME:/home/appuser" bhargavsnv/cryptgo'
+alias cryptgo='docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo'
 ```
 
 And run using:
@@ -61,7 +61,7 @@ cd cryptgo
 docker build -t cryptgo .
 
 # Run image
-docker run --rm -it -v "$HOME:/home/appuser" cryptgo
+docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo
 ```
 
 From source:
