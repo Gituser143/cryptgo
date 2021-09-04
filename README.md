@@ -3,7 +3,7 @@ cryptgo
 
 [![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/gituser143/cryptgo)](https://goreportcard.com/report/github.com/gituser143/cryptgo) [![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/Gituser143/cryptgo)
 
-### Latest Stable Version: [![Version](https://img.shields.io/badge/Version-v1.0.1-blue.svg)](https://github.com/Gituser143/cryptgo)
+### Latest Stable Version: [![Version](https://img.shields.io/badge/Version-v1.0.2-blue.svg)](https://github.com/Gituser143/cryptgo)
 
 Crytpgo is a TUI based application written purely in Go to monitor and observe cryptocurrency prices in real time!
 
@@ -24,7 +24,7 @@ Using Docker
 
 ### Running Image
 
-Replace `<version>` with a specific version for stable builds. Omitting `<:version>` or replacing using `main` as version provides the latest (in development) version.
+Replace `<version>` with a specific version for stable builds. Omitting `<:version>` uses the latest stable version or replacing using `main` as version provides the latest (in development) version.
 
 ```bash
 # Pull Image
