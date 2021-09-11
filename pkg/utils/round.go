@@ -52,7 +52,7 @@ func RoundValues(num1, num2 float64) ([]float64, string) {
 	case n < mega:
 		nums = append(nums, roundOffNearestTen(num1, kilo))
 		nums = append(nums, roundOffNearestTen(num2, kilo))
-		units = "kilo"
+		units = "K"
 
 	case n < giga:
 		nums = append(nums, roundOffNearestTen(num1, mega))
