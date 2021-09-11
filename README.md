@@ -1,7 +1,7 @@
 cryptgo
 =======
 
-[![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/gituser143/cryptgo)](https://goreportcard.com/report/github.com/gituser143/cryptgo) [![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/Gituser143/cryptgo) ![Docker Image Version (latest semver)](https://img.shields.io/docker/v/bhargavsnv/cryptgo?label=Docker%20Version&logo=Docker&sort=semver)
+[![Go Build](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/go.yml) [![Go License Check](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml/badge.svg)](https://github.com/Gituser143/cryptgo/actions/workflows/license_check.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/gituser143/cryptgo)](https://goreportcard.com/report/github.com/gituser143/cryptgo) [![Go Reference](https://pkg.go.dev/badge/github.com/Gituser143/cryptgo.svg)](https://pkg.go.dev/github.com/Gituser143/cryptgo) ![Docker Image Version (latest semver)](https://img.shields.io/docker/v/bhargavsnv/cryptgo?label=Docker%20Version&logo=Docker&sort=semver)
 
 ### Latest Stable Version: ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/gituser143/cryptgo?label=Version&sort=semver)
 
