@@ -285,7 +285,10 @@ func redrawAll(symbol string) {
 	editBox.Draw(midx, midy, editBoxWidth, 1)
 	termbox.SetCursor(midx+editBox.cursorX(), midy)
 
-	title := fmt.Sprintf(" Enter Amount in %s ", symbol)
+	title := " Enter Symbol/Name of coin "
+	if symbol != "" {
+		title = fmt.Sprintf(" Enter Amount in %s ", symbol)
+	}
 	tbprint(midx, midy-1, coldef, coldef, title)
 	tbprint(midx, midy+2, coldef, coldef, "ESC to Close")
 	tbprint(midx, midy+3, coldef, coldef, "Enter to Save")

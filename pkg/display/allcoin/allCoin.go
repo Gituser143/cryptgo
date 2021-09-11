@@ -42,6 +42,10 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	}
 	defer ui.Close()
 
+	// Variables for filter/search
+	filterStr := ""
+	rows := [][]string{}
+
 	// Variables for CoinIDs
 	coinIDMap := api.NewCoinIDMap()
 	coinIDMap.Populate()
@@ -213,6 +217,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 			// Handle Navigations
 			case "<Escape>":
+				if utilitySelected == "" {
+					filterStr = ""
+				}
 				utilitySelected = ""
 				selectedTable = page.CoinTable
 				selectedTable.ShowCursor = true
@@ -313,6 +320,13 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 							}
 						}
 					}
+				}
+
+			case "/":
+				switch utilitySelected {
+				case "":
+					inputStr := widgets.DrawEdit(uiEvents, "")
+					filterStr = strings.ToUpper(strings.Trim(inputStr, " \t\n"))
 				}
 
 			case "<Enter>":
@@ -578,13 +592,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				page.TopCoinGraphs[i].Labels["Min"] = fmt.Sprintf("%.2f %s", minValue, currency)
 			}
 
-			rows := [][]string{}
 			favouritesData := [][]string{}
 
 			// Update currency headers
 			page.CoinTable.Header[2] = fmt.Sprintf("Price (%s)", currency)
 			page.CoinTable.Header[3] = fmt.Sprintf("Change %%(%s)", changePercent)
 			page.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
+
+			rows = [][]string{}
 
 			// Iterate over coin assets
 			for _, val := range data.AllCoinData {
@@ -626,6 +641,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					price,
 					change,
 					supplyData,
+					strings.ToUpper(val.Name), // not displayed, used for filter purpose
 				})
 
 				// Aggregate favourite data
@@ -663,6 +679,17 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			}
 
 		case <-tick: // Refresh UI
+			// Filter Data
+			filteredRows := [][]string{}
+			for _, row := range rows {
+				symbol, name := row[1], row[5]
+				if strings.Contains(symbol, filterStr) || strings.Contains(name, filterStr) {
+					filteredRows = append(filteredRows, row)
+				}
+			}
+
+			page.CoinTable.Rows = filteredRows
+
 			if *sendData {
 				updateUI()
 			}
