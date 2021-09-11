@@ -44,7 +44,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 	// Initialise page
 	page := newPortfolioPage()
 	selectedTable := page.CoinTable
-	utilitySelected := ""
+	utilitySelected := uw.None
 
 	// Variables for CoinIDs
 	coinIDMap := api.NewCoinIDMap()
@@ -104,10 +104,10 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 		// Render required widgets
 		switch utilitySelected {
-		case "HELP":
+		case uw.Help:
 			help.Resize(w, h)
 			ui.Render(help)
-		case "CURRENCY":
+		case uw.Currency:
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
 		default:
@@ -147,30 +147,30 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 				selectedTable.ShowCursor = false
 				selectedTable = help.Table
 				selectedTable.ShowCursor = true
-				utilitySelected = "HELP"
+				utilitySelected = uw.Help
 				updateUI()
 
 			case "c":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows(false)
-					utilitySelected = "CURRENCY"
+					utilitySelected = uw.Currency
 				}
 
 			case "C":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows(true)
-					utilitySelected = "CURRENCY"
+					utilitySelected = uw.Currency
 				}
 
 			case "e":
 				switch utilitySelected {
-				case "":
+				case uw.None:
 					id := ""
 					symbol := ""
 
@@ -203,7 +203,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 			case "<Enter>":
 				switch utilitySelected {
-				case "CURRENCY":
+				case uw.Currency:
 					// Update Currency
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
 						row := currencyWidget.Rows[currencyWidget.SelectedRow]
@@ -216,9 +216,9 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
 						coinHeader[5] = fmt.Sprintf("Balance (%s)", currency)
 					}
-					utilitySelected = ""
+					utilitySelected = uw.None
 
-				case "":
+				case uw.None:
 
 					// pause UI and data send
 					pause()
@@ -318,10 +318,10 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 					// unpause data send and receive
 					pause()
 					updateUI()
-					utilitySelected = ""
+					utilitySelected = uw.None
 				}
 
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = page.CoinTable
 					selectedTable.ShowCursor = true
@@ -329,7 +329,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 			// Handle Navigations
 			case "<Escape>":
-				utilitySelected = ""
+				utilitySelected = uw.None
 				selectedTable = page.CoinTable
 				selectedTable.ShowCursor = true
 				updateUI()
@@ -366,7 +366,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 			// handle sorting
 			case "1", "2", "3", "4", "5", "6", "7":
 				// Sort Ascending
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					idx, _ := strconv.Atoi(e.ID)
 					coinSortIdx = idx - 1
 					page.CoinTable.Header = append([]string{}, coinHeader...)
@@ -377,7 +377,7 @@ func DisplayPortfolio(ctx context.Context, dataChannel chan api.AssetData, sendD
 
 			case "<F1>", "<F2>", "<F3>", "<F4>", "<F5>", "<F6>", "<F7>":
 				// Sort Descending
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					page.CoinTable.Header = append([]string{}, coinHeader...)
 					idx, _ := strconv.Atoi(e.ID[2:3])
 					coinSortIdx = idx - 1

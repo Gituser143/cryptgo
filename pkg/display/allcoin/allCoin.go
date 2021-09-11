@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Gituser143/cryptgo/pkg/api"
@@ -44,7 +45,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 	// Variables for filter/search
 	filterStr := ""
+
 	rows := [][]string{}
+	var rowsMutex sync.Mutex
 
 	// Variables for CoinIDs
 	coinIDMap := api.NewCoinIDMap()
@@ -61,7 +64,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Initialise page and set selected table
 	page := newAllCoinPage()
 	selectedTable := page.CoinTable
-	utilitySelected := ""
+	utilitySelected := uw.None
 
 	// Initialise favourites and portfolio
 	portfolioMap := utils.GetPortfolio()
@@ -115,16 +118,16 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 		// Render required widgets
 		switch utilitySelected {
-		case "HELP":
+		case uw.Help:
 			help.Resize(w, h)
 			ui.Render(help)
-		case "PORTFOLIO":
+		case uw.Portfolio:
 			portfolioTable.Resize(w, h)
 			ui.Render(portfolioTable)
-		case "CURRENCY":
+		case uw.Currency:
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
-		case "CHANGE":
+		case uw.Change:
 			changePercentWidget.Resize(w, h)
 			ui.Render(changePercentWidget)
 		default:
@@ -163,64 +166,64 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				selectedTable.ShowCursor = false
 				selectedTable = help.Table
 				selectedTable.ShowCursor = true
-				utilitySelected = "HELP"
+				utilitySelected = uw.Help
 				updateUI()
 
 			case "f":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = page.FavouritesTable
 					selectedTable.ShowCursor = true
 				}
 
 			case "F":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = page.CoinTable
 					selectedTable.ShowCursor = true
 				}
 
 			case "c":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows(false)
-					utilitySelected = "CURRENCY"
+					utilitySelected = uw.Currency
 				}
 
 			case "C":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows(true)
-					utilitySelected = "CURRENCY"
+					utilitySelected = uw.Currency
 				}
 
 			case "%":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = changePercentWidget.Table
 					selectedTable.ShowCursor = true
-					utilitySelected = "CHANGE"
+					utilitySelected = uw.Change
 				}
 
 			case "P":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = portfolioTable.Table
 					selectedTable.ShowCursor = true
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
-					utilitySelected = "PORTFOLIO"
+					utilitySelected = uw.Portfolio
 				}
 
 			// Handle Navigations
 			case "<Escape>":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					filterStr = ""
 				}
-				utilitySelected = ""
+				utilitySelected = uw.None
 				selectedTable = page.CoinTable
 				selectedTable.ShowCursor = true
 				updateUI()
@@ -257,7 +260,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			// Handle Actions
 			case "e":
 				switch utilitySelected {
-				case "PORTFOLIO":
+				case uw.Portfolio:
 					id := ""
 					symbol := ""
 
@@ -286,7 +289,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
 
-				case "":
+				case uw.None:
 					id := ""
 					symbol := ""
 
@@ -324,14 +327,14 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 			case "/":
 				switch utilitySelected {
-				case "":
+				case uw.None:
 					inputStr := widgets.DrawEdit(uiEvents, "")
 					filterStr = strings.ToUpper(strings.Trim(inputStr, " \t\n"))
 				}
 
 			case "<Enter>":
 				switch utilitySelected {
-				case "CURRENCY":
+				case uw.Currency:
 
 					// Update Currency
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
@@ -345,9 +348,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						coinHeader[2] = fmt.Sprintf("Price (%s)", currency)
 						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
-					utilitySelected = ""
+					utilitySelected = uw.None
 
-				case "CHANGE":
+				case uw.Change:
 					if changePercentWidget.SelectedRow < len(changePercentWidget.Rows) {
 						row := changePercentWidget.Rows[changePercentWidget.SelectedRow]
 
@@ -355,9 +358,9 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 						coinHeader[3] = fmt.Sprintf("Change %%(%s)", changePercent)
 					}
-					utilitySelected = ""
+					utilitySelected = uw.None
 
-				case "":
+				case uw.None:
 					// pause UI and data send
 					pause()
 
@@ -460,17 +463,17 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					// unpause data send and receive
 					pause()
 					updateUI()
-					utilitySelected = ""
+					utilitySelected = uw.None
 				}
 
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = page.CoinTable
 					selectedTable.ShowCursor = true
 				}
 
 			case "s":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					id := ""
 					symbol := ""
 
@@ -492,7 +495,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 
 			case "S":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					id := ""
 					symbol := ""
 
@@ -517,7 +520,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				}
 			}
 
-			if utilitySelected == "" {
+			if utilitySelected == uw.None {
 				// Handle Sorting of tables
 				switch selectedTable {
 				case page.CoinTable:
@@ -599,6 +602,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			page.CoinTable.Header[3] = fmt.Sprintf("Change %%(%s)", changePercent)
 			page.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 
+			rowsMutex.Lock()
 			rows = [][]string{}
 
 			// Iterate over coin assets
@@ -652,6 +656,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 					})
 				}
 			}
+			rowsMutex.Unlock()
 
 			page.CoinTable.Rows = rows
 			page.FavouritesTable.Rows = favouritesData
@@ -681,12 +686,15 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 		case <-tick: // Refresh UI
 			// Filter Data
 			filteredRows := [][]string{}
+
+			rowsMutex.Lock()
 			for _, row := range rows {
 				symbol, name := row[1], row[5]
 				if strings.Contains(symbol, filterStr) || strings.Contains(name, filterStr) {
 					filteredRows = append(filteredRows, row)
 				}
 			}
+			rowsMutex.Unlock()
 
 			page.CoinTable.Rows = filteredRows
 

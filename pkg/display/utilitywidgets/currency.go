@@ -49,14 +49,14 @@ type CurrencyTable struct {
 }
 
 // Currency holds information of a single currency, it used to populate currencyIDMaps
-type Currency struct {
+type CurrencyValue struct {
 	Symbol  string
 	RateUSD float64
 	Type    string
 }
 
 // CurrencyIDMap maps a currency Id to it's symbol and price in USD
-type CurrencyIDMap map[string]Currency
+type CurrencyIDMap map[string]CurrencyValue
 
 // NewCurrencyIDMap creates and returns an instance of CurrencyIDMap
 func NewCurrencyIDMap() CurrencyIDMap {
@@ -99,7 +99,7 @@ func (c CurrencyIDMap) Populate() {
 		rate, err := strconv.ParseFloat(curr.RateUSD, 64)
 		if err == nil {
 
-			c[currencyID] = Currency{
+			c[currencyID] = CurrencyValue{
 				Symbol:  fmt.Sprintf("%s %s", curr.Symbol, curr.CurrencySymbol),
 				RateUSD: rate,
 				Type:    curr.Type,

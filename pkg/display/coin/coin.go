@@ -57,7 +57,7 @@ func DisplayCoin(
 	// Selection of default table
 	selectedTable := page.ExplorerTable
 	selectedTable.ShowCursor = true
-	utilitySelected := ""
+	utilitySelected := uw.None
 
 	// variables to sort favourites table
 	favSortIdx := -1
@@ -96,16 +96,16 @@ func DisplayCoin(
 
 		// Render required widgets
 		switch utilitySelected {
-		case "HELP":
+		case uw.Help:
 			help.Resize(w, h)
 			ui.Render(help)
-		case "PORTFOLIO":
+		case uw.Portfolio:
 			portfolioTable.Resize(w, h)
 			ui.Render(portfolioTable)
-		case "CURRENCY":
+		case uw.Currency:
 			currencyWidget.Resize(w, h)
 			ui.Render(currencyWidget)
-		case "CHANGE":
+		case uw.Change:
 			changeIntervalWidget.Resize(w, h)
 			ui.Render(changeIntervalWidget)
 		default:
@@ -130,8 +130,8 @@ func DisplayCoin(
 		case e := <-uiEvents: // keyboard events
 			switch e.ID {
 			case "<Escape>", "q", "<C-c>":
-				if utilitySelected != "" {
-					utilitySelected = ""
+				if utilitySelected != uw.None {
+					utilitySelected = uw.None
 					selectedTable = page.ExplorerTable
 					selectedTable.ShowCursor = true
 					updateUI()
@@ -146,56 +146,56 @@ func DisplayCoin(
 				selectedTable.ShowCursor = false
 				selectedTable = help.Table
 				selectedTable.ShowCursor = true
-				utilitySelected = "HELP"
+				utilitySelected = uw.Help
 				updateUI()
 
 			case "c":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows(false)
-					utilitySelected = "CURRENCY"
+					utilitySelected = uw.Currency
 				}
 
 			case "C":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = currencyWidget.Table
 					selectedTable.ShowCursor = true
 					currencyWidget.UpdateRows(true)
-					utilitySelected = "CURRENCY"
+					utilitySelected = uw.Currency
 				}
 
 			case "d":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = changeIntervalWidget.Table
 					selectedTable.ShowCursor = true
-					utilitySelected = "CHANGE"
+					utilitySelected = uw.Change
 				}
 
 			case "f":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = page.FavouritesTable
 					selectedTable.ShowCursor = true
 				}
 
 			case "F":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = page.ExplorerTable
 					selectedTable.ShowCursor = true
 				}
 
 			case "P":
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = portfolioTable.Table
 					selectedTable.ShowCursor = true
 					portfolioTable.UpdateRows(portfolioMap, currency, currencyVal)
-					utilitySelected = "PORTFOLIO"
+					utilitySelected = uw.Portfolio
 				}
 
 			// Navigations
@@ -231,7 +231,7 @@ func DisplayCoin(
 			// Actions
 			case "<Enter>":
 				switch utilitySelected {
-				case "CHANGE":
+				case uw.Change:
 					// Update Graph Durations
 					if changeIntervalWidget.SelectedRow < len(changeIntervalWidget.Rows) {
 						row := changeIntervalWidget.Rows[changeIntervalWidget.SelectedRow]
@@ -246,9 +246,9 @@ func DisplayCoin(
 						// Send Updated Interval
 						intervalChannel <- newChangeInterval
 					}
-					utilitySelected = ""
+					utilitySelected = uw.None
 
-				case "CURRENCY":
+				case uw.Currency:
 
 					// Update Currency
 					if currencyWidget.SelectedRow < len(currencyWidget.Rows) {
@@ -261,10 +261,10 @@ func DisplayCoin(
 						// Update currency fields
 						favHeader[1] = fmt.Sprintf("Price (%s)", currency)
 					}
-					utilitySelected = ""
+					utilitySelected = uw.None
 				}
 
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					selectedTable.ShowCursor = false
 					selectedTable = page.ExplorerTable
 					selectedTable.ShowCursor = true
@@ -272,7 +272,7 @@ func DisplayCoin(
 
 			case "e":
 				switch utilitySelected {
-				case "PORTFOLIO":
+				case uw.Portfolio:
 					id := ""
 					symbol := ""
 
@@ -304,7 +304,7 @@ func DisplayCoin(
 				}
 			}
 
-			if utilitySelected == "" {
+			if utilitySelected == uw.None {
 				switch selectedTable {
 				case page.FavouritesTable:
 					switch e.ID {
@@ -339,12 +339,12 @@ func DisplayCoin(
 		case data := <-priceChannel:
 			// Update live price
 			if data == "NA" {
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					page.PriceBox.Rows[0][0] = data
 				}
 			} else {
 				p, _ := strconv.ParseFloat(data, 64)
-				if utilitySelected == "" {
+				if utilitySelected == uw.None {
 					page.PriceBox.Rows[0][0] = fmt.Sprintf("%.2f", p/currencyVal)
 					ui.Render(page.PriceBox)
 				}
