@@ -82,7 +82,7 @@ func (c CoinIDMap) Populate() {
 	go func(IDMap CoinIDMap, m *sync.Mutex, wg *sync.WaitGroup) {
 		defer wg.Done()
 
-		coinPtr, err := getTopNCoins(200)
+		coinPtr, err := getTopNCoins(250)
 		if err != nil {
 			return
 		}

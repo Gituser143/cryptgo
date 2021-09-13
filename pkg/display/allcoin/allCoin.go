@@ -33,6 +33,21 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func filterRows(allRows [][]string, filter string, m *sync.Mutex) [][]string {
+	filteredRows := [][]string{}
+
+	m.Lock()
+	for _, row := range allRows {
+		symbol, name := row[1], row[5]
+		if strings.Contains(symbol, filter) || strings.Contains(name, filter) {
+			filteredRows = append(filteredRows, row)
+		}
+	}
+	m.Unlock()
+
+	return filteredRows
+}
+
 // DisplayAllCoins displays the main page with top coin prices, favourites and
 // general coin asset data
 func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendData *bool) error {
@@ -46,7 +61,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 	// Variables for filter/search
 	filterStr := ""
 
-	rows := [][]string{}
+	allRows := [][]string{}
 	var rowsMutex sync.Mutex
 
 	// Variables for CoinIDs
@@ -534,7 +549,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						page.CoinTable.Header = append([]string{}, coinHeader...)
 						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.UpArrow
 						coinSortAsc = true
-						utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
+						utils.SortData(allRows, coinSortIdx, coinSortAsc, "COINS")
 
 					// Sort Descending
 					case "<F1>", "<F2>", "<F3>", "<F4>":
@@ -543,7 +558,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 						coinSortIdx = idx - 1
 						page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.DownArrow
 						coinSortAsc = false
-						utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
+						utils.SortData(allRows, coinSortIdx, coinSortAsc, "COINS")
 					}
 
 				case page.FavouritesTable:
@@ -605,7 +620,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			page.FavouritesTable.Header[1] = fmt.Sprintf("Price (%s)", currency)
 
 			rowsMutex.Lock()
-			rows = [][]string{}
+			allRows = [][]string{}
 
 			// Iterate over coin assets
 			for _, val := range data.AllCoinData {
@@ -641,7 +656,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				rank := fmt.Sprintf("%d", val.MarketCapRank)
 
 				// Aggregate data
-				rows = append(rows, []string{
+				allRows = append(allRows, []string{
 					rank,
 					strings.ToUpper(val.Symbol),
 					price,
@@ -660,12 +675,12 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			}
 			rowsMutex.Unlock()
 
-			page.CoinTable.Rows = rows
+			page.CoinTable.Rows = filterRows(allRows, filterStr, &rowsMutex)
 			page.FavouritesTable.Rows = favouritesData
 
 			// Sort CoinTable data
 			if coinSortIdx != -1 {
-				utils.SortData(page.CoinTable.Rows, coinSortIdx, coinSortAsc, "COINS")
+				utils.SortData(allRows, coinSortIdx, coinSortAsc, "COINS")
 
 				if coinSortAsc {
 					page.CoinTable.Header[coinSortIdx] = coinHeader[coinSortIdx] + " " + utils.UpArrow
@@ -687,18 +702,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 
 		case <-tick: // Refresh UI
 			// Filter Data
-			filteredRows := [][]string{}
-
-			rowsMutex.Lock()
-			for _, row := range rows {
-				symbol, name := row[1], row[5]
-				if strings.Contains(symbol, filterStr) || strings.Contains(name, filterStr) {
-					filteredRows = append(filteredRows, row)
-				}
-			}
-			rowsMutex.Unlock()
-
-			page.CoinTable.Rows = filteredRows
+			page.CoinTable.Rows = filterRows(allRows, filterStr, &rowsMutex)
 
 			if *sendData {
 				updateUI()
