@@ -222,6 +222,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 			case "<Escape>":
 				if utilitySelected == uw.None {
 					filterStr = ""
+					page.CoinTable.Title = " Coins "
 				}
 				utilitySelected = uw.None
 				selectedTable = page.CoinTable
@@ -330,6 +331,7 @@ func DisplayAllCoins(ctx context.Context, dataChannel chan api.AssetData, sendDa
 				case uw.None:
 					inputStr := widgets.DrawEdit(uiEvents, "")
 					filterStr = strings.ToUpper(strings.Trim(inputStr, " \t\n"))
+					page.CoinTable.Title = fmt.Sprintf(" Coins. Filter: '%s' ", filterStr)
 				}
 
 			case "<Enter>":

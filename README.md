@@ -118,10 +118,13 @@ Key-bindings can be found by pressing `?`. This displays the help prompt.
 	-	`G` and `<End>`: jump to bottom
 	-	`f`: focus favourites table
 	-	`F`: focus interval table
+-	**Searching/Filtering**
+	-	/: Open search box
+	-	Esc: Clear filter text
 -	**Sorting**
 	-	Use column number to sort ascending.
-	-	Use `<F-column number>` to sort descending.
-	-	Eg: `1` to sort ascending on 1st Col and `F1` for descending
+	-	Use <F-column number> to sort descending.
+	-	Eg: 1 to sort ascending on 1st Col and F1 for descending
 -	**Actions (Interval Table)**
 	-	`<c>`: Select Currency (from popular list)
 	-	`<C>`: Select Currency (from full list)
@@ -230,6 +233,12 @@ Currency need not be fixed to USD $, other currencies can be selected from eithe
 #### Full Currency Table
 
 ![currency-full](images/currency-full.png)
+
+### Search/Filtering
+
+Coins can be filtered/searched based on an input substring. The search/filter box can be brought up on the main page (press `/`).
+
+![search](images/search.png)
 
 ### Change Percentage Interval
 
