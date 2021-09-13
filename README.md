@@ -119,8 +119,8 @@ Key-bindings can be found by pressing `?`. This displays the help prompt.
 	-	`f`: focus favourites table
 	-	`F`: focus interval table
 -	**Searching/Filtering**
-	-	/: Open search box
-	-	Esc: Clear filter text
+	-	`/`: Open search box
+	-	`Esc`: Clear filter text
 -	**Sorting**
 	-	Use column number to sort ascending.
 	-	Use <F-column number> to sort descending.
