@@ -72,3 +72,55 @@ func TestMaxFloat64(t *testing.T) {
 		assert.Equal(t, test.expectedVal, val)
 	}
 }
+
+func TestRoundValues(t *testing.T) {
+	tests := []struct {
+		name           string
+		inputNum1      float64
+		inputNum2      float64
+		expRoundedVals []float64
+		expUnit        string
+	}{
+		{
+			name:           "both values smaller than kilo",
+			inputNum1:      250,
+			inputNum2:      500,
+			expRoundedVals: []float64{250, 500},
+			expUnit:        "",
+		},
+		{
+			name:           "both values kilo",
+			inputNum1:      80000,
+			inputNum2:      9000,
+			expRoundedVals: []float64{80, 9},
+			expUnit:        "K",
+		},
+		{
+			name:           "mega and less than mega",
+			inputNum1:      400000,
+			inputNum2:      7000000,
+			expRoundedVals: []float64{0.4, 7},
+			expUnit:        "M",
+		},
+		{
+			name:           "giga and less than giga",
+			inputNum1:      100000000,
+			inputNum2:      9000000000,
+			expRoundedVals: []float64{0.1, 9},
+			expUnit:        "B",
+		},
+		{
+			name:           "both values tera",
+			inputNum1:      5000000000000000,
+			inputNum2:      100000000000000,
+			expRoundedVals: []float64{5000, 100},
+			expUnit:        "T",
+		},
+	}
+
+	for _, test := range tests {
+		roundedVals, unit := utils.RoundValues(test.inputNum1, test.inputNum2)
+		assert.Equal(t, test.expRoundedVals, roundedVals)
+		assert.Equal(t, test.expUnit, unit)
+	}
+}
