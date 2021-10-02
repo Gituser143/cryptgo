@@ -16,13 +16,20 @@ limitations under the License.
 
 package utilitywidgets
 
+// Utility represents a utilty displayed in the UI
 type Utility int
 
 const (
+	// None is when no utility is being displayed and the page is visible
 	None Utility = iota
+	// Help is when the help table is displayed
 	Help
+	// Portfolio is when the mini portfolio table is displayed
 	Portfolio
+	// Change is when the change interval table is displayed
 	Change
+	// Duration is when the graph duration interval table is displayed
 	Duration
+	// Currency is when the currency selection table is displayed
 	Currency
 )
