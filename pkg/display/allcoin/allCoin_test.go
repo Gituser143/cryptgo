@@ -67,6 +67,63 @@ func TestFilterRows(t *testing.T) {
 			filter:       "ABA",
 			filteredRows: [][]string{},
 		},
+		{
+			allRows: [][]string{
+				{"", "XRP", "", "", "", "ripple"},
+				{"", "ETH", "", "", "", "ethereum"},
+				{"", "LTC", "", "", "", "litecoin"},
+				{"", "BTC", "", "", "", "bitcoin"},
+				{"", "XRP", "", "", "", "ripple"},
+			},
+			filter: "ripple",
+			filteredRows: [][]string{
+				{"", "XRP", "", "", "", "ripple"},
+				{"", "XRP", "", "", "", "ripple"},
+			},
+		},
+		{
+			allRows: [][]string{
+				{"", "BNB", "", "", "", "binance"},
+				{"", "ETH", "", "", "", "ethereum"},
+				{"", "DOGE", "", "", "", "dogecoin"},
+				{"", "BTC", "", "", "", "bitcoin"},
+				{"", "XRP", "", "", "", "ripple"},
+			},
+			filter: "dogecoin",
+			filteredRows: [][]string{
+				{"", "DOGE", "", "", "", "dogecoin"},
+			},
+		},
+		{
+			allRows: [][]string{
+				{"", "BNB", "", "", "", "binance"},
+				{"", "ETH", "", "", "", "ethereum"},
+				{"", "BTC", "", "", "", "bitcoin"},
+				{"", "XRP", "", "", "", "ripple"},
+			},
+			filter:       "dogecoin",
+			filteredRows: [][]string{},
+		},
+		{
+			allRows:      [][]string{},
+			filter:       "litecoin",
+			filteredRows: [][]string{},
+		},
+		{
+			allRows: [][]string{
+				{"", "BNB", "", "", "", "binance"},
+				{"", "ETH", "", "", "", "ethereum"},
+				{"", "BTC", "", "", "", "bitcoin"},
+				{"", "XRP", "", "", "", "ripple"},
+			},
+			filter: "",
+			filteredRows: [][]string{
+				{"", "BNB", "", "", "", "binance"},
+				{"", "ETH", "", "", "", "ethereum"},
+				{"", "BTC", "", "", "", "bitcoin"},
+				{"", "XRP", "", "", "", "ripple"},
+			},
+		},
 	}
 
 	for _, test := range tests {
