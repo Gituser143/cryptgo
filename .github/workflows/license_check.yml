@@ -19,4 +19,4 @@ jobs:
           go-version: 1.16
 
       - name: License Check
-        run: go run scripts/license_check.go
+        run: make license
