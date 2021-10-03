@@ -48,7 +48,7 @@ type CurrencyTable struct {
 	IDMap *CurrencyIDMap
 }
 
-// Currency holds information of a single currency, it used to populate currencyIDMaps
+// CurrencyValue holds information of a single currency, it used to populate currencyIDMaps
 type CurrencyValue struct {
 	Symbol  string
 	RateUSD float64
