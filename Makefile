@@ -24,7 +24,7 @@ deps: ## Install dependencies
 	go mod download
 
 build: ## Build binary.
-	go build -v ./... 
+	go build cryptgo.go
 
 all: deps test ## Install deps, test and build binary.
 	make build
