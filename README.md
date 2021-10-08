@@ -24,14 +24,27 @@ Using Docker
 
 ### Running Image
 
-Replace `<version>` with a specific version for stable builds. Omitting `<:version>` uses the latest stable version or replacing using `main` as version provides the latest (in development) version.
+Set `VERSION` to a specific version for stable builds. Omitting `VERSION` uses the latest stable version or setting `main` as version provides the latest (in development) version.
 
 ```bash
 # Pull Image
-docker pull bhargavsnv/cryptgo:<version>
+make docker-pull
 
-# Run image
-docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo
+# Pull specific version of image
+VERSION=v1.1.1 make docker-pull
+
+# Run Image
+make docker-run
+
+# Run specific version of image
+VERSION=v1.1.1 make docker-run
+
+# Run image with portfolio command
+ARG=portfolio make docker-run
+
+# Run image with help command
+ARG=help make docker-run
+
 ```
 
 Optionally, an alias can be created for ease of use:
@@ -58,13 +71,13 @@ git clone https://github.com/Gituser143/cryptgo
 cd cryptgo
 
 # Build image
-docker build -t cryptgo .
+make docker-build
 
 # Run image
-docker run -u $(id -u):$(id -g) -v "$HOME:/home/appuser/" --rm -it bhargavsnv/cryptgo
+make docker-run
 ```
 
-From source:
+From Source:
 ------------
 
 Building requires [Go](https://golang.org) to be installed.
@@ -77,9 +90,15 @@ git clone https://github.com/Gituser143/cryptgo
 cd cryptgo
 
 # Build executable
-go build cryptgo.go
+make build
 ```
 
+Make
+--------
+```bash
+# See all make targets
+make help
+```
 ---
 
 What does `cryptgo` do?
